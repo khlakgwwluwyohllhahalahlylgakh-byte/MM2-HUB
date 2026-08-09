@@ -1,83 +1,253 @@
+
 -- ==========================================================
--- MM2 STYLED FPS ULTIMATE HUB v5.0 | ULTRA V5 APEX EDITION
+-- MM2 STYLED FPS ULTIMATE HUB v5.0 | RAYFIELD APEX EDITION
 -- ==========================================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local TeleportService = game:GetService("TeleportService")
 local Camera = Workspace.CurrentCamera
 
 -- Global Ayarlar
 _G.Settings = {
     Aimbot = false,
-    ESP = false,
-    Noclip = false,
     RapidFire = false,
+    HitboxExpand = false,
+    HitboxSize = 5,
+    Triggerbot = false,
+    ESP = false,
+    Fullbright = false,
+    FOVShow = false,
+    FOVRadius = 120,
+    Noclip = false,
     InfJump = false,
-    HitboxExpand = false
+    WalkSpeed = 16,
+    JumpPower = 50
 }
 
 -- ==========================================================
--- ULTRA V5 ARAYÜZ KÜTÜPHANESİNİ YÜKLE
+-- RAYFIELD ARAYÜZ KÜTÜPHANESİNİ YÜKLE
 -- ==========================================================
-local UltraV5 = local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
-local Window = UltraV5:CreateWindow({
-    Name = "FPS Ultimate Hub v5.0",
-    ToggleKey = Enum.KeyCode.RightControl,
-    ConfigFileName = "FPS_Ultimate_Config.json"
+local Window = Rayfield:CreateWindow({
+    Name = "FPS Ultimate Hub v5.0 | Rayfield Apex",
+    LoadingTitle = "FPS Ultimate Hub Yükleniyor...",
+    LoadingSubtitle = "by Sirius Rayfield UI",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "FPSHubConfig",
+        FileName = "FPS_Ultimate_Settings"
+    },
+    Discord = { Enabled = false },
+    KeySystem = false
 })
 
 -- Sekmeler
-local CombatTab   = Window:CreateTab("Combat (Savaş)", "⚔️")
-local VisualsTab  = Window:CreateTab("Görsel / ESP", "👁️")
-local MovementTab = Window:CreateTab("Hareket", "⚡")
+local CombatTab   = Window:CreateTab("Savaş (Combat)", 4483362458)
+local VisualsTab  = Window:CreateTab("Görsel (Visuals)", 4483362458)
+local MovementTab = Window:CreateTab("Hareket (Movement)", 4483362458)
+local MiscTab     = Window:CreateTab("Ekstralar (Misc)", 4483362458)
 
 -- ==========================================================
--- SEKMELERE ÖZELLİKLERİN EKLENMESİ
+-- 1. SAVAŞ SEKMESİ (COMBAT)
 -- ==========================================================
+CombatTab:CreateSection("Aimbot & Otomatik Hedef")
 
--- COMBAT SEKMESİ
-CombatTab:CreateToggle("Aimbot (Botlar Dahil)", false, function(state)
-    _G.Settings.Aimbot = state
-end)
+CombatTab:CreateToggle({
+    Name = "Aimbot (Botlar Dahil)",
+    CurrentValue = false,
+    Flag = "AimbotToggle",
+    Callback = function(Value)
+        _G.Settings.Aimbot = Value
+    end,
+})
 
-CombatTab:CreateToggle("Rapid Fire (Seri Ateş)", false, function(state)
-    _G.Settings.RapidFire = state
-end)
+CombatTab:CreateToggle({
+    Name = "Auto Triggerbot (Hedefe Bakınca Ateş Et)",
+    CurrentValue = false,
+    Flag = "TriggerbotToggle",
+    Callback = function(Value)
+        _G.Settings.Triggerbot = Value
+    end,
+})
 
--- GÖRSEL / ESP SEKMESİ
-VisualsTab:CreateToggle("ESP (Botlar Dahil)", false, function(state)
-    _G.Settings.ESP = state
-    if not state then
-        for _, v in pairs(Workspace:GetDescendants()) do
-            if v.Name == "FPS_ESP_BOX" then
-                v:Destroy()
+CombatTab:CreateSection("Silah & Hitbox Özellikleri")
+
+CombatTab:CreateToggle({
+    Name = "Rapid Fire (Seri Ateş)",
+    CurrentValue = false,
+    Flag = "RapidFireToggle",
+    Callback = function(Value)
+        _G.Settings.RapidFire = Value
+    end,
+})
+
+CombatTab:CreateToggle({
+    Name = "Hitbox Expand (Hedef Büyütme)",
+    CurrentValue = false,
+    Flag = "HitboxToggle",
+    Callback = function(Value)
+        _G.Settings.HitboxExpand = Value
+    end,
+})
+
+CombatTab:CreateSlider({
+    Name = "Hitbox Boyutu",
+    Range = {2, 20},
+    Increment = 1,
+    Suffix = " Boyut",
+    CurrentValue = 5,
+    Flag = "HitboxSizeSlider",
+    Callback = function(Value)
+        _G.Settings.HitboxSize = Value
+    end,
+})
+
+-- ==========================================================
+-- 2. GÖRSEL SEKMESİ (VISUALS)
+-- ==========================================================
+VisualsTab:CreateSection("ESP & Görüş")
+
+VisualsTab:CreateToggle({
+    Name = "ESP Highlight (Botlar Dahil)",
+    CurrentValue = false,
+    Flag = "ESPToggle",
+    Callback = function(Value)
+        _G.Settings.ESP = Value
+        if not Value then
+            for _, v in pairs(Workspace:GetDescendants()) do
+                if v.Name == "FPS_ESP_BOX" then
+                    v:Destroy()
+                end
             end
         end
-    end
-end)
+    end,
+})
 
-VisualsTab:CreateToggle("Hitbox Expand (Hedef Büyütme)", false, function(state)
-    _G.Settings.HitboxExpand = state
-end)
+VisualsTab:CreateToggle({
+    Name = "Fullbright (Gece Görüşü / Aydınlatma)",
+    CurrentValue = false,
+    Flag = "FullbrightToggle",
+    Callback = function(Value)
+        _G.Settings.Fullbright = Value
+        if not Value then
+            Lighting.GlobalShadows = true
+        end
+    end,
+})
 
--- HAREKET SEKMESİ
-MovementTab:CreateToggle("Noclip (Duvarlardan Geçiş)", false, function(state)
-    _G.Settings.Noclip = state
-end)
+VisualsTab:CreateSection("FOV Halkası")
 
-MovementTab:CreateToggle("Inf Jump (Sonsuz Zıplama)", false, function(state)
-    _G.Settings.InfJump = state
-end)
+VisualsTab:CreateToggle({
+    Name = "FOV Halkasını Göster",
+    CurrentValue = false,
+    Flag = "FOVShowToggle",
+    Callback = function(Value)
+        _G.Settings.FOVShow = Value
+    end,
+})
 
-MovementTab:CreateKeybind("Arayüz Aç/Kapat Tuşu", Enum.KeyCode.RightControl, function(key)
-    print("Arayüz tuşuna basıldı")
-end)
+VisualsTab:CreateSlider({
+    Name = "FOV Yarıçapı",
+    Range = {50, 400},
+    Increment = 5,
+    Suffix = "px",
+    CurrentValue = 120,
+    Flag = "FOVSlider",
+    Callback = function(Value)
+        _G.Settings.FOVRadius = Value
+    end,
+})
 
 -- ==========================================================
--- MOTORLAR VE ÇALIŞTIRICI FONKSİYONLAR
+-- 3. HAREKET SEKMESİ (MOVEMENT)
+-- ==========================================================
+MovementTab:CreateSection("Fizik & Geçişler")
+
+MovementTab:CreateToggle({
+    Name = "Noclip (Duvarlardan Geçiş)",
+    CurrentValue = false,
+    Flag = "NoclipToggle",
+    Callback = function(Value)
+        _G.Settings.Noclip = Value
+    end,
+})
+
+MovementTab:CreateToggle({
+    Name = "Inf Jump (Sonsuz Zıplama)",
+    CurrentValue = false,
+    Flag = "InfJumpToggle",
+    Callback = function(Value)
+        _G.Settings.InfJump = Value
+    end,
+})
+
+MovementTab:CreateSection("Hız & Güç")
+
+MovementTab:CreateSlider({
+    Name = "Yürüme Hızı (WalkSpeed)",
+    Range = {16, 120},
+    Increment = 1,
+    Suffix = " Hız",
+    CurrentValue = 16,
+    Flag = "SpeedSlider",
+    Callback = function(Value)
+        _G.Settings.WalkSpeed = Value
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = Value
+        end
+    end,
+})
+
+MovementTab:CreateSlider({
+    Name = "Zıplama Gücü (JumpPower)",
+    Range = {50, 200},
+    Increment = 5,
+    Suffix = " Güç",
+    CurrentValue = 50,
+    Flag = "JumpSlider",
+    Callback = function(Value)
+        _G.Settings.JumpPower = Value
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.JumpPower = Value
+        end
+    end,
+})
+
+-- ==========================================================
+-- 4. EKSTRALAR SEKMESİ (MISC)
+-- ==========================================================
+MiscTab:CreateSection("Sunucu & Performans")
+
+MiscTab:CreateButton({
+    Name = "FPS Boost / Anti-Lag (Grafik Düşür)",
+    Callback = function()
+        pcall(function()
+            for _, v in pairs(Workspace:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.Material = Enum.Material.SmoothPlastic
+                elseif v:IsA("Decal") or v:IsA("Texture") then
+                    v:Destroy()
+                end
+            end
+            Lighting.GlobalShadows = false
+        end)
+    end,
+})
+
+MiscTab:CreateButton({
+    Name = "Sunucuya Yeniden Katıl (Rejoin)",
+    Callback = function()
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+    end,
+})
+
+-- ==========================================================
+-- ÇALIŞTIRICI MOTORLAR (ENGINE LOOPS)
 -- ==========================================================
 local function GetAllTargets()
     local targets = {}
@@ -91,16 +261,34 @@ local function GetAllTargets()
     return targets
 end
 
--- Aimbot Motoru
+-- FOV Çizim Objesi (Drawing API)
+local FOVCircle = nil
+if Drawing then
+    FOVCircle = Drawing.new("Circle")
+    FOVCircle.Thickness = 1.5
+    FOVCircle.Color = Color3.fromRGB(0, 255, 140)
+    FOVCircle.Filled = false
+    FOVCircle.Transparency = 1
+end
+
+-- Aimbot & FOV Loop
 RunService.RenderStepped:Connect(function()
+    local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    
+    if FOVCircle then
+        FOVCircle.Visible = _G.Settings.FOVShow
+        FOVCircle.Radius = _G.Settings.FOVRadius
+        FOVCircle.Position = mousePos
+    end
+
     if _G.Settings.Aimbot then
         local closest = nil
-        local dist = math.huge
-        local mouse = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+        local dist = _G.Settings.FOVShow and _G.Settings.FOVRadius or math.huge
+        
         for _, hrp in pairs(GetAllTargets()) do
             local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
             if onScreen then
-                local mag = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
+                local mag = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
                 if mag < dist then
                     dist = mag
                     closest = hrp
@@ -111,26 +299,31 @@ RunService.RenderStepped:Connect(function()
             Camera.CFrame = CFrame.new(Camera.CFrame.Position, closest.Position)
         end
     end
+
+    if _G.Settings.Fullbright then
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+        Lighting.GlobalShadows = false
+    end
 end)
 
--- ESP Motoru
+-- ESP Loop
 RunService.RenderStepped:Connect(function()
     if _G.Settings.ESP then
         for _, hrp in pairs(GetAllTargets()) do
             if not hrp.Parent:FindFirstChild("FPS_ESP_BOX") then
                 local hl = Instance.new("Highlight", hrp.Parent)
                 hl.Name = "FPS_ESP_BOX"
-                hl.FillColor = Color3.fromRGB(255, 0, 0)
+                hl.FillColor = Color3.fromRGB(255, 30, 30)
             end
         end
     end
 end)
 
--- Noclip Motoru
+-- Noclip Loop
 RunService.Stepped:Connect(function()
     if _G.Settings.Noclip and LocalPlayer.Character then
-        local char = LocalPlayer.Character
-        for _, p in pairs(char:GetDescendants()) do
+        for _, p in pairs(LocalPlayer.Character:GetDescendants()) do
             if p:IsA("BasePart") then
                 p.CanCollide = false
             end
@@ -138,31 +331,51 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Rapid Fire Motoru
+-- RapidFire & Triggerbot & Hitbox Loop
 RunService.Heartbeat:Connect(function()
-    if _G.Settings.RapidFire and LocalPlayer.Character then
-        local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        if tool then
-            pcall(function() tool:Activate() end)
+    if LocalPlayer.Character then
+        -- Character Speed Fix
+        local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            if _G.Settings.WalkSpeed ~= 16 then humanoid.WalkSpeed = _G.Settings.WalkSpeed end
+            if _G.Settings.JumpPower ~= 50 then humanoid.JumpPower = _G.Settings.JumpPower end
+        end
+
+        -- Rapid Fire
+        if _G.Settings.RapidFire then
+            local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+            if tool then
+                pcall(function() tool:Activate() end)
+            end
+        end
+
+        -- Triggerbot
+        if _G.Settings.Triggerbot then
+            local ray = Camera:ViewportPointToRay(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+            local result = Workspace:Raycast(ray.Origin, ray.Direction * 1000)
+            if result and result.Instance then
+                local model = result.Instance:FindFirstAncestorOfClass("Model")
+                if model and model:FindFirstChild("Humanoid") and model ~= LocalPlayer.Character then
+                    local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                    if tool then pcall(function() tool:Activate() end) end
+                end
+            end
         end
     end
-end)
 
--- Inf Jump Motoru
-UserInputService.JumpRequest:Connect(function()
-    if _G.Settings.InfJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
-
--- Hitbox Expand Motoru
-RunService.Heartbeat:Connect(function()
+    -- Hitbox Expand
     if _G.Settings.HitboxExpand then
         for _, hrp in pairs(GetAllTargets()) do
-            hrp.Size = Vector3.new(5, 5, 5)
+            hrp.Size = Vector3.new(_G.Settings.HitboxSize, _G.Settings.HitboxSize, _G.Settings.HitboxSize)
             hrp.Transparency = 0.5
             hrp.CanCollide = false
         end
     end
 end)
 
+-- Infinite Jump Listener
+UserInputService.JumpRequest:Connect(function()
+    if _G.Settings.InfJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
