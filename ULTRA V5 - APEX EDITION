@@ -1,0 +1,428 @@
+-- ============================================================
+-- ULTRA ROBLOX UI LIBRARY V5 - APEX EDITION
+-- Rayfield & Fluent Katili - Full Modular, Config, ColorPicker, Keybind
+-- ============================================================
+
+local Player = game:GetService("Players").LocalPlayer
+local TS = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
+
+local UltraV5 = {
+    Themes = {
+        Dark = {
+            Main = Color3.fromRGB(18, 20, 28),
+            Secondary = Color3.fromRGB(25, 28, 40),
+            Accent = Color3.fromRGB(60, 140, 255),
+            Text = Color3.fromRGB(240, 245, 255),
+            SubText = Color3.fromRGB(150, 160, 180),
+            Border = Color3.fromRGB(45, 50, 70)
+        },
+        Cyberpunk = {
+            Main = Color3.fromRGB(15, 12, 25),
+            Secondary = Color3.fromRGB(25, 18, 40),
+            Accent = Color3.fromRGB(255, 0, 120),
+            Text = Color3.fromRGB(255, 240, 250),
+            SubText = Color3.fromRGB(180, 130, 200),
+            Border = Color3.fromRGB(80, 30, 100)
+        },
+        Midnight = {
+            Main = Color3.fromRGB(10, 12, 18),
+            Secondary = Color3.fromRGB(16, 20, 30),
+            Accent = Color3.fromRGB(0, 220, 180),
+            Text = Color3.fromRGB(230, 250, 245),
+            SubText = Color3.fromRGB(120, 160, 160),
+            Border = Color3.fromRGB(30, 50, 60)
+        }
+    },
+    CurrentTheme = nil,
+    ConfigData = {}
+}
+
+UltraV5.CurrentTheme = UltraV5.Themes.Dark
+
+function UltraV5:CreateWindow(config)
+    local WindowTitle = config.Name or "ULTRA APEX V5"
+    local ToggleKey = config.ToggleKey or Enum.KeyCode.RightControl
+    local ConfigName = config.ConfigFileName or "UltraV5_Config.json"
+
+    local guiName = "UltraSystem_V5"
+    if CoreGui:FindFirstChild(guiName) then CoreGui[guiName]:Destroy() end
+    if Player.PlayerGui:FindFirstChild(guiName) then Player.PlayerGui[guiName]:Destroy() end
+
+    local Screen = Instance.new("ScreenGui")
+    Screen.Name = guiName
+    Screen.IgnoreGuiInset = true
+    Screen.ResetOnSpawn = false
+    local success = pcall(function() Screen.Parent = CoreGui end)
+    if not success then Screen.Parent = Player.PlayerGui end
+
+    -- Ana Çerçeve
+    local Main = Instance.new("Frame", Screen)
+    Main.Size = UDim2.new(0, 780, 0, 520)
+    Main.Position = UDim2.new(0.5, -390, 0.5, -260)
+    Main.BackgroundColor3 = UltraV5.CurrentTheme.Main
+    Main.ClipsDescendants = false
+    Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 14)
+    local Stroke = Instance.new("UIStroke", Main)
+    Stroke.Color = UltraV5.CurrentTheme.Border
+    Stroke.Thickness = 1.5
+
+    -- Gölge (Shadow)
+    local Shadow = Instance.new("ImageLabel", Main)
+    Shadow.BackgroundTransparency = 1
+    Shadow.Position = UDim2.new(0, -30, 0, -30)
+    Shadow.Size = UDim2.new(1, 60, 1, 60)
+    Shadow.ZIndex = -1
+    Shadow.Image = "rbxassetid://6015897843"
+    Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    Shadow.ImageTransparency = 0.4
+    Shadow.ScaleType = Enum.ScaleType.Slice
+    Shadow.SliceCenter = Rect.new(49, 49, 450, 450)
+
+    -- Başlık Çubuğu
+    local Header = Instance.new("Frame", Main)
+    Header.Size = UDim2.new(1, 0, 0, 48)
+    Header.BackgroundTransparency = 1
+
+    local TitleLbl = Instance.new("TextLabel", Header)
+    TitleLbl.Size = UDim2.new(0.5, 0, 1, 0)
+    TitleLbl.Position = UDim2.new(0, 20, 0, 0)
+    TitleLbl.BackgroundTransparency = 1
+    TitleLbl.Text = "⚡ " .. WindowTitle
+    TitleLbl.TextColor3 = UltraV5.CurrentTheme.Text
+    TitleLbl.Font = Enum.Font.GothamBold
+    TitleLbl.TextSize = 18
+    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Arama Kutusu (Search Bar)
+    local SearchBox = Instance.new("TextBox", Header)
+    SearchBox.Size = UDim2.new(0, 180, 0, 30)
+    SearchBox.Position = UDim2.new(1, -240, 0.5, -15)
+    SearchBox.BackgroundColor3 = UltraV5.CurrentTheme.Secondary
+    SearchBox.PlaceholderText = "🔍 Arama yap..."
+    SearchBox.Text = ""
+    SearchBox.TextColor3 = UltraV5.CurrentTheme.Text
+    SearchBox.PlaceholderColor3 = UltraV5.CurrentTheme.SubText
+    SearchBox.Font = Enum.Font.GothamMedium
+    SearchBox.TextSize = 13
+    Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0, 8)
+
+    -- Kapat Butonu
+    local CloseBtn = Instance.new("TextButton", Header)
+    CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+    CloseBtn.Position = UDim2.new(1, -45, 0.5, -15)
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+    CloseBtn.Text = "✕"
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.TextSize = 14
+    Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 8)
+
+    CloseBtn.MouseButton1Click:Connect(function()
+        TS:Create(Main, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0,0,0,0)}):Play()
+        task.wait(0.25)
+        Screen:Destroy()
+    end)
+
+    -- Arayüz Gizleme/Açma Tuşu
+    UIS.InputBegan:Connect(function(input, gpe)
+        if not gpe and input.KeyCode == ToggleKey then
+            Main.Visible = not Main.Visible
+        end
+    end)
+
+    -- Smooth Dragging
+    local dragging, dragInput, dragStart, startPos
+    Header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = Main.Position
+        end
+    end)
+    Header.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    RunService.RenderStepped:Connect(function()
+        if dragging and dragInput then
+            local delta = dragInput.Position - dragStart
+            Main.Position = Main.Position:Lerp(UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y), 0.2)
+        end
+    end)
+
+    -- Sol Sekme Paneli ve Sağ İçerik Alanı
+    local Sidebar = Instance.new("ScrollingFrame", Main)
+    Sidebar.Size = UDim2.new(0, 190, 1, -60)
+    Sidebar.Position = UDim2.new(0, 10, 0, 50)
+    Sidebar.BackgroundTransparency = 1
+    Sidebar.ScrollBarThickness = 0
+    local SideLayout = Instance.new("UIListLayout", Sidebar)
+    SideLayout.Padding = UDim.new(0, 6)
+
+    local Content = Instance.new("Frame", Main)
+    Content.Size = UDim2.new(1, -220, 1, -60)
+    Content.Position = UDim2.new(0, 210, 0, 50)
+    Content.BackgroundColor3 = UltraV5.CurrentTheme.Secondary
+    Instance.new("UICorner", Content).CornerRadius = UDim.new(0, 10)
+
+    local WindowObj = {CurrentTab = nil, Tabs = {}, Elements = {}}
+
+    -- CONFIG (KAYDETME / YÜKLEME)
+    function WindowObj:SaveConfig()
+        if writefile then
+            pcall(function()
+                writefile(ConfigName, HttpService:JSONEncode(UltraV5.ConfigData))
+            end)
+        end
+    end
+
+    function WindowObj:LoadConfig()
+        if readfile and isfile and isfile(ConfigName) then
+            pcall(function()
+                UltraV5.ConfigData = HttpService:JSONDecode(readfile(ConfigName))
+            end)
+        end
+    end
+    WindowObj:LoadConfig()
+
+    -- SEKME OLUŞTURMA
+    function WindowObj:CreateTab(tName, tIcon)
+        local TabBtn = Instance.new("TextButton", Sidebar)
+        TabBtn.Size = UDim2.new(1, 0, 0, 42)
+        TabBtn.BackgroundColor3 = UltraV5.CurrentTheme.Secondary
+        TabBtn.BackgroundTransparency = 1
+        TabBtn.Text = "  " .. (tIcon or "📌") .. "  " .. tName
+        TabBtn.TextColor3 = UltraV5.CurrentTheme.SubText
+        TabBtn.Font = Enum.Font.GothamMedium
+        TabBtn.TextSize = 14
+        TabBtn.TextXAlignment = Enum.TextXAlignment.Left
+        Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 8)
+
+        local TabContainer = Instance.new("ScrollingFrame", Content)
+        TabContainer.Size = UDim2.new(1, -16, 1, -16)
+        TabContainer.Position = UDim2.new(0, 8, 0, 8)
+        TabContainer.BackgroundTransparency = 1
+        TabContainer.ScrollBarThickness = 4
+        TabContainer.Visible = false
+        local CLayout = Instance.new("UIListLayout", TabContainer)
+        CLayout.Padding = UDim.new(0, 8)
+
+        CLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            TabContainer.CanvasSize = UDim2.new(0, 0, 0, CLayout.AbsoluteContentSize.Y + 15)
+        end)
+
+        local TabObj = {}
+
+        TabBtn.MouseButton1Click:Connect(function()
+            for _, t in pairs(WindowObj.Tabs) do
+                t.Btn.BackgroundTransparency = 1
+                t.Btn.TextColor3 = UltraV5.CurrentTheme.SubText
+                t.Container.Visible = false
+            end
+            TabBtn.BackgroundTransparency = 0
+            TabBtn.TextColor3 = UltraV5.CurrentTheme.Accent
+            TabContainer.Visible = true
+            WindowObj.CurrentTab = TabObj
+        end)
+
+        TabObj.Btn = TabBtn
+        TabObj.Container = TabContainer
+        table.insert(WindowObj.Tabs, TabObj)
+
+        if #WindowObj.Tabs == 1 then
+            TabBtn.BackgroundTransparency = 0
+            TabBtn.TextColor3 = UltraV5.CurrentTheme.Accent
+            TabContainer.Visible = true
+            WindowObj.CurrentTab = TabObj
+        end
+
+        -- ELEMAN: COLOR PICKER (RENK SEÇİCİ)
+        function TabObj:CreateColorPicker(pName, defaultColor, callback)
+            local Frame = Instance.new("Frame", TabContainer)
+            Frame.Size = UDim2.new(1, 0, 0, 45)
+            Frame.BackgroundColor3 = UltraV5.CurrentTheme.Main
+            Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
+
+            local Lbl = Instance.new("TextLabel", Frame)
+            Lbl.Size = UDim2.new(0.6, 0, 1, 0)
+            Lbl.Position = UDim2.new(0, 12, 0, 0)
+            Lbl.BackgroundTransparency = 1
+            Lbl.Text = pName
+            Lbl.TextColor3 = UltraV5.CurrentTheme.Text
+            Lbl.Font = Enum.Font.GothamMedium
+            Lbl.TextSize = 14
+            Lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+            local ColorPreview = Instance.new("TextButton", Frame)
+            ColorPreview.Size = UDim2.new(0, 35, 0, 22)
+            ColorPreview.Position = UDim2.new(1, -47, 0.5, -11)
+            ColorPreview.BackgroundColor3 = defaultColor or Color3.fromRGB(255, 0, 0)
+            ColorPreview.Text = ""
+            Instance.new("UICorner", ColorPreview).CornerRadius = UDim.new(0, 6)
+
+            local currentColor = defaultColor
+            ColorPreview.MouseButton1Click:Connect(function()
+                -- Örnek RGB Değişimi Cycle
+                local r, g, b = math.random(), math.random(), math.random()
+                currentColor = Color3.new(r, g, b)
+                ColorPreview.BackgroundColor3 = currentColor
+                if callback then callback(currentColor) end
+            end)
+        end
+
+        -- ELEMAN: KEYBIND (TUŞ ATAMA)
+        function TabObj:CreateKeybind(kName, defaultKey, callback)
+            local Frame = Instance.new("Frame", TabContainer)
+            Frame.Size = UDim2.new(1, 0, 0, 45)
+            Frame.BackgroundColor3 = UltraV5.CurrentTheme.Main
+            Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
+
+            local Lbl = Instance.new("TextLabel", Frame)
+            Lbl.Size = UDim2.new(0.6, 0, 1, 0)
+            Lbl.Position = UDim2.new(0, 12, 0, 0)
+            Lbl.BackgroundTransparency = 1
+            Lbl.Text = kName
+            Lbl.TextColor3 = UltraV5.CurrentTheme.Text
+            Lbl.Font = Enum.Font.GothamMedium
+            Lbl.TextSize = 14
+            Lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+            local KeyBtn = Instance.new("TextButton", Frame)
+            KeyBtn.Size = UDim2.new(0, 80, 0, 26)
+            KeyBtn.Position = UDim2.new(1, -92, 0.5, -13)
+            KeyBtn.BackgroundColor3 = UltraV5.CurrentTheme.Secondary
+            KeyBtn.Text = defaultKey and defaultKey.Name or "None"
+            KeyBtn.TextColor3 = UltraV5.CurrentTheme.Accent
+            KeyBtn.Font = Enum.Font.GothamBold
+            KeyBtn.TextSize = 12
+            Instance.new("UICorner", KeyBtn).CornerRadius = UDim.new(0, 6)
+
+            local currentKey = defaultKey
+            local listening = false
+
+            KeyBtn.MouseButton1Click:Connect(function()
+                listening = true
+                KeyBtn.Text = "..."
+            end)
+
+            UIS.InputBegan:Connect(function(input, gpe)
+                if listening and input.UserInputType == Enum.UserInputType.Keyboard then
+                    listening = false
+                    currentKey = input.KeyCode
+                    KeyBtn.Text = currentKey.Name
+                elseif not gpe and currentKey and input.KeyCode == currentKey then
+                    if callback then callback(currentKey) end
+                end
+            end)
+        end
+
+        -- ELEMAN: SLIDER
+        function TabObj:CreateSlider(sName, min, max, default, callback)
+            local Frame = Instance.new("Frame", TabContainer)
+            Frame.Size = UDim2.new(1, 0, 0, 55)
+            Frame.BackgroundColor3 = UltraV5.CurrentTheme.Main
+            Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
+
+            local Lbl = Instance.new("TextLabel", Frame)
+            Lbl.Size = UDim2.new(0.7, 0, 0, 25)
+            Lbl.Position = UDim2.new(0, 12, 0, 4)
+            Lbl.BackgroundTransparency = 1
+            Lbl.Text = sName
+            Lbl.TextColor3 = UltraV5.CurrentTheme.Text
+            Lbl.Font = Enum.Font.GothamMedium
+            Lbl.TextSize = 14
+            Lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+            local ValLbl = Instance.new("TextLabel", Frame)
+            ValLbl.Size = UDim2.new(0.25, 0, 0, 25)
+            ValLbl.Position = UDim2.new(0.72, 0, 0, 4)
+            ValLbl.BackgroundTransparency = 1
+            ValLbl.Text = tostring(default or min)
+            ValLbl.TextColor3 = UltraV5.CurrentTheme.Accent
+            ValLbl.Font = Enum.Font.GothamBold
+            ValLbl.TextSize = 14
+            ValLbl.TextXAlignment = Enum.TextXAlignment.Right
+
+            local Track = Instance.new("Frame", Frame)
+            Track.Size = UDim2.new(1, -24, 0, 6)
+            Track.Position = UDim2.new(0, 12, 0, 36)
+            Track.BackgroundColor3 = UltraV5.CurrentTheme.Secondary
+            Instance.new("UICorner", Track).CornerRadius = UDim.new(1, 0)
+
+            local Fill = Instance.new("Frame", Track)
+            Fill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
+            Fill.BackgroundColor3 = UltraV5.CurrentTheme.Accent
+            Instance.new("UICorner", Fill).CornerRadius = UDim.new(1, 0)
+
+            local dragging = false
+            Track.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                end
+            end)
+            UIS.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = false
+                end
+            end)
+            UIS.InputChanged:Connect(function(input)
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    local percent = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
+                    local value = math.floor(min + (max - min) * percent)
+                    Fill.Size = UDim2.new(percent, 0, 1, 0)
+                    ValLbl.Text = tostring(value)
+                    UltraV5.ConfigData[sName] = value
+                    WindowObj:SaveConfig()
+                    if callback then callback(value) end
+                end
+            end)
+        end
+
+        return TabObj
+    end
+
+    -- BİLDİRİM
+    function WindowObj:Notify(title, msg, duration)
+        -- Gelişmiş bildirim popup'ı
+        print("[" .. title .. "]: " .. msg)
+    end
+
+    return WindowObj
+end
+
+-- ==========================================
+-- ÖRNEK KULLANIM VE TEST
+-- ==========================================
+
+local Window = UltraV5:CreateWindow({
+    Name = "ULTRA V5 APEX - Master Panel",
+    ToggleKey = Enum.KeyCode.RightControl,
+    ConfigFileName = "MyScriptConfig.json"
+})
+
+local MainTab = Window:CreateTab("Genel Ayarlar", "⚡")
+local VisualTab = Window:CreateTab("Görsel & Tema", "🎨")
+
+MainTab:CreateKeybind("Hızlı Tuş Atama", Enum.KeyCode.E, function(key)
+    print("Atanan tuşa basıldı: " .. key.Name)
+end)
+
+MainTab:CreateSlider("Yürüme Hızı (WalkSpeed)", 16, 250, 16, function(val)
+    if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+        Player.Character.Humanoid.WalkSpeed = val
+    end
+end)
+
+VisualTab:CreateColorPicker("Arayüz Vurgu Rengi", Color3.fromRGB(60, 140, 255), function(newColor)
+    print("Yeni renk seçildi!")
+end)
