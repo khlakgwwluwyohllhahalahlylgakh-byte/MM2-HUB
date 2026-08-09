@@ -1,6 +1,5 @@
 -- ==========================================================
--- FPS ULTIMATE HUB v8.0 | APEX PREDATOR EDITION
--- Geliştirilmiş Performans, Prediction, Drawing API & LinearFly
+-- FPS ULTIMATE HUB v8.0 | APEX PREDATOR EDITION (FIXED)
 -- ==========================================================
 
 local Players = game:GetService("Players")
@@ -14,22 +13,40 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local CoreGui = game:GetService("CoreGui")
 local Camera = Workspace.CurrentCamera
 
+-- Güvenli Drawing Oluşturucu (Mobil/Executor çökmelerini önler)
+local function safeDrawing(className)
+    local success, obj = pcall(function()
+        return Drawing.new(className)
+    end)
+    if success and obj then
+        return obj
+    else
+        -- Desteklemiyorsa boş nesne döndür ki script çökmesin
+        return {
+            Visible = false,
+            Remove = function() end,
+            Destroy = function() end,
+            Size = Vector2.new(0,0),
+            Position = Vector2.new(0,0),
+            Color = Color3.new(1,1,1)
+        }
+    end
+end
+
 -- ==========================================================
 -- GLOBAL AYARLAR VE VERİ YÖNETİMİ
 -- ==========================================================
 _G.Settings = {
-    -- Combat
     Aimbot = false,
-    AimbotHold = false, -- false = Her zaman aktif, true = Sağ tık basılı
+    AimbotHold = false,
     AimPart = "Head",
     TeamCheck = false,
     Smoothness = 0.15,
-    Prediction = 0.165, -- Hareket tahmini (Ping bazlı)
-    VisibilityCheck = true, -- Duvar arkasını vurma
+    Prediction = 0.165,
+    VisibilityCheck = true,
     Triggerbot = false,
     SilentAim = false,
     
-    -- Visuals
     ESP = false,
     ESP_Box = true,
     ESP_Name = true,
@@ -37,14 +54,13 @@ _G.Settings = {
     ESP_Distance = true,
     ESP_Color = Color3.fromRGB(255, 30, 30),
     Tracers = false,
-    TracerOrigin = "Bottom", -- Bottom, Top, Center
+    TracerOrigin = "Bottom",
     FOVShow = true,
     FOVRadius = 120,
     FOVColor = Color3.fromRGB(0, 255, 140),
     Fullbright = false,
     CustomCrosshair = false,
     
-    -- Movement
     Noclip = false,
     InfJump = false,
     Fly = false,
@@ -54,7 +70,6 @@ _G.Settings = {
     AntiAFK = true,
 }
 
--- Durum Yönetimi
 local isAimbotActive = true
 local ESP_Objects = {}
 local flying = false
@@ -64,13 +79,13 @@ local flyAttachment, flyLV, flyAlign = nil, nil, nil
 -- ÖZEL CROSSHAIR GÖRSEL NESNESİ
 -- ==========================================================
 local CrosshairParts = {
-    Top = Drawing.new("Line"),
-    Bottom = Drawing.new("Line"),
-    Left = Drawing.new("Line"),
-    Right = Drawing.new("Line")
+    Top = safeDrawing("Line"),
+    Bottom = safeDrawing("Line"),
+    Left = safeDrawing("Line"),
+    Right = safeDrawing("Line")
 }
 for _, line in pairs(CrosshairParts) do
-    line.Thickness = 1.5
+    if line.Thickness then line.Thickness = 1.5 end
     line.Color = Color3.fromRGB(0, 255, 140)
     line.Visible = false
 end
@@ -168,7 +183,7 @@ CombatTab:CreateToggle({
 -- ==========================================================
 -- 2. GÖRSEL SEKMESİ (VISUALS)
 -- ==========================================================
-VisualsTab:CreateSection("Gelişmiş ESP Sistemi (Drawing API)")
+VisualsTab:CreateSection("Gelişmiş ESP Sistemi")
 
 VisualsTab:CreateToggle({
     Name = "ESP Master Aktif",
@@ -235,7 +250,7 @@ VisualsTab:CreateToggle({
 MovementTab:CreateSection("Fizik & Havada Kalma")
 
 MovementTab:CreateToggle({
-    Name = "Fly Mode (Yeni Nesil Uçma)",
+    Name = "Fly Mode (Uçma)",
     CurrentValue = _G.Settings.Fly,
     Flag = "FlyToggle",
     Callback = function(Value) _G.Settings.Fly = Value end,
@@ -294,52 +309,34 @@ MiscTab:CreateButton({
     end,
 })
 
-MiscTab:CreateButton({
-    Name = "Sunucuyu Kopyala (Server Hop)",
-    Callback = function()
-        local Http = game:GetService("HttpService")
-        local Success, Servers = pcall(function()
-            return Http:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100")).data
-        end)
-        if Success and Servers then
-            for _, Server in ipairs(Servers) do
-                if Server.id ~= game.JobId then
-                    TeleportService:TeleportToPlaceInstance(game.PlaceId, Server.id, LocalPlayer)
-                    break
-                end
-            end
-        end
-    end,
-})
-
 -- ==========================================================
--- MOTOR: ÇİZİM SİSTEMİ (DRAWING API - PERFORMANS ODAKLI)
+-- MOTOR: ÇİZİM SİSTEMİ
 -- ==========================================================
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 1.5
+local FOVCircle = safeDrawing("Circle")
+if FOVCircle.Thickness then FOVCircle.Thickness = 1.5 end
 FOVCircle.Filled = false
 FOVCircle.Transparency = 1
 
 local function CreateESP(player)
     if ESP_Objects[player] then return end
     local drawings = {
-        Box = Drawing.new("Square"),
-        Tracer = Drawing.new("Line"),
-        Name = Drawing.new("Text"),
-        Distance = Drawing.new("Text"),
-        HealthBar = Drawing.new("Square"),
-        HealthBarBG = Drawing.new("Square"),
+        Box = safeDrawing("Square"),
+        Tracer = safeDrawing("Line"),
+        Name = safeDrawing("Text"),
+        Distance = safeDrawing("Text"),
+        HealthBar = safeDrawing("Square"),
+        HealthBarBG = safeDrawing("Square"),
     }
     
-    drawings.Box.Thickness = 1.5
+    if drawings.Box.Thickness then drawings.Box.Thickness = 1.5 end
     drawings.Box.Filled = false
-    drawings.Name.Center = true
-    drawings.Name.Outline = true
-    drawings.Name.Size = 16
-    drawings.Distance.Center = true
-    drawings.Distance.Outline = true
-    drawings.Distance.Size = 14
-    drawings.Tracer.Thickness = 1.5
+    if drawings.Name.Center then drawings.Name.Center = true end
+    if drawings.Name.Outline then drawings.Name.Outline = true end
+    if drawings.Name.Size then drawings.Name.Size = 16 end
+    if drawings.Distance.Center then drawings.Distance.Center = true end
+    if drawings.Distance.Outline then drawings.Distance.Outline = true end
+    if drawings.Distance.Size then drawings.Distance.Size = 14 end
+    if drawings.Tracer.Thickness then drawings.Tracer.Thickness = 1.5 end
     
     ESP_Objects[player] = drawings
 end
@@ -347,7 +344,7 @@ end
 local function RemoveESP(player)
     if ESP_Objects[player] then
         for _, draw in pairs(ESP_Objects[player]) do
-            draw:Destroy()
+            pcall(function() draw:Destroy() end)
         end
         ESP_Objects[player] = nil
     end
@@ -366,7 +363,7 @@ for _, plr in pairs(Players:GetPlayers()) do
 end
 
 -- ==========================================================
--- MOTOR: ANA DÖNGÜLER (MAIN LOOPS)
+-- MOTOR: ANA DÖNGÜLER
 -- ==========================================================
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
@@ -386,7 +383,7 @@ end)
 
 LocalPlayer.Idled:Connect(function()
     if _G.Settings.AntiAFK then
-        VirtualInputManager:SendMouseMoveEvent(math.random(), math.random(), game.Workspace.CurrentCamera)
+        pcall(function() VirtualInputManager:SendMouseMoveEvent(math.random(), math.random(), game.Workspace.CurrentCamera) end)
     end
 end)
 
@@ -446,18 +443,15 @@ local function IsVisible(targetPart)
     return true
 end
 
--- RenderStepped Ana İşlem
 RunService.RenderStepped:Connect(function(dt)
     local mousePos = UserInputService:GetMouseLocation()
     local camCF = Camera.CFrame
     
-    -- FOV Çemberi
     FOVCircle.Visible = _G.Settings.FOVShow
     FOVCircle.Radius = _G.Settings.FOVRadius
     FOVCircle.Position = mousePos
     FOVCircle.Color = _G.Settings.FOVColor
     
-    -- Özel Crosshair Güncelleme
     if _G.Settings.CustomCrosshair then
         local center = Camera.ViewportSize / 2
         local size = 6
@@ -482,10 +476,9 @@ RunService.RenderStepped:Connect(function(dt)
         for _, line in pairs(CrosshairParts) do line.Visible = false end
     end
     
-    -- ESP Motoru
     for plr, draws in pairs(ESP_Objects) do
         if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            local hum = plr.Character:FindFirstChild_Or_FindFirstChildOfClass and plr.Character:FindFirstChildOfClass("Humanoid") or plr.Character:FindFirstChild("Humanoid")
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
             local hrp = plr.Character.HumanoidRootPart
             
             if hum and hum.Health > 0 then
@@ -539,7 +532,6 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 
-    -- Aimbot Motoru
     local shouldAim = _G.Settings.Aimbot and (not _G.Settings.AimbotHold or isAimbotActive)
     if shouldAim then
         local closest, closestDist = nil, _G.Settings.FOVRadius
@@ -579,7 +571,6 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 
-    -- Fullbright
     if _G.Settings.Fullbright then
         Lighting.Brightness = 2
         Lighting.ClockTime = 14
@@ -587,7 +578,6 @@ RunService.RenderStepped:Connect(function(dt)
         Lighting.FogEnd = 100000
     end
 
-    -- Fly Motoru Hareket Güncelleme
     if flying and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = LocalPlayer.Character.HumanoidRootPart
         local moveDir = Vector3.new(0,0,0)
@@ -605,7 +595,6 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
--- Heartbeat Arka Plan Döngüsü
 RunService.Heartbeat:Connect(function()
     if _G.Settings.Fly and not flying then StartFly()
     elseif not _G.Settings.Fly and flying then StopFly() end
@@ -613,30 +602,6 @@ RunService.Heartbeat:Connect(function()
     if _G.Settings.Noclip and LocalPlayer.Character then
         for _, p in pairs(LocalPlayer.Character:GetDescendants()) do
             if p:IsA("BasePart") then p.CanCollide = false end
-        end
-    end
-    
-    if _G.Settings.Triggerbot and LocalPlayer.Character then
-        local ray = Camera:ViewportPointToRay(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-        local params = RaycastParams.new()
-        params.FilterDescendantsInstances = {LocalPlayer.Character, Camera}
-        params.FilterType = Enum.RaycastFilterType.Exclude
-        
-        local result = Workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
-        if result and result.Instance then
-            local model = result.Instance:FindFirstAncestorOfClass("Model")
-            if model and model:FindFirstChildOfClass("Humanoid") then
-                local player = Players:GetPlayerFromCharacter(model)
-                if player and player ~= LocalPlayer then
-                    if not (_G.Settings.TeamCheck and player.Team == LocalPlayer.Team) then
-                        if mouse1click then pcall(mouse1click) else 
-                            local pos = UserInputService:GetMouseLocation()
-                            VirtualInputManager:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 1)
-                            VirtualInputManager:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 1)
-                        end
-                    end
-                end
-            end
         end
     end
     
@@ -650,7 +615,7 @@ end)
 
 Rayfield:Notify({
     Title = "FPS Hub v8.0 Başlatıldı",
-    Content = "INSERT: UI Aç/Kapat | Sağ Tık: Aimbot",
+    Content = "Arayüz Hazır!",
     Duration = 5,
     Image = 4483362458
 })
