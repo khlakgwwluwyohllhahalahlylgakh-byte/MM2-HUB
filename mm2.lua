@@ -1,5 +1,5 @@
 -- ==========================================
--- MM2 Masterpiece Hub v14.1 | Ultimate Safe Teleport Edition
+-- MM2 Masterpiece Hub v14.2 | Ultimate Fixed Edition
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -46,7 +46,7 @@ LoadTitle.BackgroundTransparency = 1
 LoadTitle.Size = UDim2.new(1, 0, 0, 40)
 LoadTitle.Position = UDim2.new(0, 0, 0.15, 0)
 LoadTitle.Font = Enum.Font.GothamBold
-LoadTitle.Text = "MM2 Masterpiece v14.1"
+LoadTitle.Text = "MM2 Masterpiece v14.2"
 LoadTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 LoadTitle.TextSize = 18
 
@@ -56,7 +56,7 @@ LoadStatus.BackgroundTransparency = 1
 LoadStatus.Size = UDim2.new(1, 0, 0, 30)
 LoadStatus.Position = UDim2.new(0, 0, 0.55, 0)
 LoadStatus.Font = Enum.Font.Gotham
-LoadStatus.Text = "Güvenli Zemin Motoru ve Özellikler Yükleniyor..."
+LoadStatus.Text = "Güvenli Zemin ve Silah Algılama Yükleniyor..."
 LoadStatus.TextColor3 = Color3.fromRGB(170, 170, 180)
 LoadStatus.TextSize = 13
 
@@ -73,6 +73,7 @@ local function FullCleanup()
     _G.SmartFarm = false
     _G.NoclipActive = false
     _G.RoleESP = false
+    _G.GunESP = false
     _G.FullBright = false
     _G.SpeedEnabled = false
     _G.InfJump = false
@@ -97,8 +98,33 @@ local function FullCleanup()
     Workspace.Gravity = 196.2
 end
 
+-- Güvenli Harita İçi Rastgele Konum Bulucu (Lobiye Asla Atmaz)
+local function GetSafeMapPosition(currentHrpPos, killerPos)
+    for i = 1, 15 do
+        local angle = math.random() * math.pi * 2
+        local distance = math.random(35, 65)
+        local testPos = currentHrpPos + Vector3.new(math.cos(angle) * distance, 40, math.sin(angle) * distance)
+        
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+        raycastParams.IgnoreWater = true
+        raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+        
+        local rayResult = Workspace:Raycast(testPos, Vector3.new(0, -80, 0), raycastParams)
+        if rayResult and rayResult.Instance and rayResult.Instance.CanCollide then
+            local hitPos = rayResult.Position + Vector3.new(0, 3, 0)
+            -- Katilin en az 20 birim uzakta olduğundan emin ol
+            if (hitPos - killerPos).Magnitude > 20 then
+                return hitPos
+            end
+        end
+    end
+    -- Zemin bulunamazsa oyuncunun arkasında güvenli yakın bir yere at
+    return currentHrpPos + Vector3.new(math.random(-25, 25), 4, math.random(-25, 25))
+end
+
 -- ==========================================
--- 2. ADIM: ANİMASYON BİTTİKTEN SONRA ARAYÜZÜ KUR
+-- 2. ADIM: ARAYÜZÜ KUR
 -- ==========================================
 task.delay(1.6, function()
     TweenService:Create(LoadFrame, TweenInfo.new(0.4), {Size = UDim2.new(0,0,0,0), BackgroundTransparency = 1}):Play()
@@ -171,9 +197,9 @@ task.delay(1.6, function()
     Title.Position = UDim2.new(0.03, 0, 0, 0)
     Title.Size = UDim2.new(0.6, 0, 1, 0)
     Title.Font = Enum.Font.GothamBold
-    Title.Text = "MM2 Masterpiece Hub v14.1 | Safe Teleport"
+    Title.Text = "MM2 Masterpiece Hub v14.2 | Fixed Safe Teleport & Gun"
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.TextSize = 14
+    Title.TextSize = 13
     Title.TextXAlignment = Enum.TextXAlignment.Left
 
     local CloseButton = Instance.new("TextButton")
@@ -336,9 +362,9 @@ task.delay(1.6, function()
     end))
 
     -- ==========================================
-    -- 1. GÜVENLİ KORUMA ÖZELLİKLERİ (DÜZELTİLDİ: BOŞLUĞA DEĞİL ZEMİNE IŞINLANMA)
+    -- 1. GÜVENLİ KORUMA (HARİTA İÇİ GÜVENLİ RASTGELE NOKTA)
     -- ==========================================
-    AddToggle("Protection", "Acil Kaçış Kalkanı (Katil Yaklaşınca Güvenli Bloğa)", function(state)
+    AddToggle("Protection", "Acil Kaçış Kalkanı (Katil Yaklaşınca Haritaya Işınlan)", function(state)
         _G.EmergencyDodge = state
         Track(RunService.Heartbeat:Connect(function()
             if not _G.EmergencyDodge then return end
@@ -357,26 +383,9 @@ task.delay(1.6, function()
                         if isMurderer and pHrp then
                             local dist = (hrp.Position - pHrp.Position).Magnitude
                             if dist < 14 then
-                                -- Katilin tersi yönünde kaçış açısı hesapla
-                                local escapeDir = (hrp.Position - pHrp.Position)
-                                escapeDir = Vector3.new(escapeDir.X, 0, escapeDir.Z).Unit
-                                
-                                local targetPos = hrp.Position + (escapeDir * 32) + Vector3.new(0, 15, 0)
-                                
-                                -- Aşağıya doğru Raycast atarak katı zemin (CanCollide blok) ara
-                                local raycastParams = RaycastParams.new()
-                                raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-                                raycastParams.IgnoreWater = true
-                                raycastParams.FilterDescendantsInstances = {char, pChar}
-                                
-                                local rayResult = Workspace:Raycast(targetPos, Vector3.new(0, -60, 0), raycastParams)
-                                if rayResult and rayResult.Instance and rayResult.Instance.CanCollide then
-                                    -- Kesinlikle sağlam bir bloğun üstüne ışınla
-                                    hrp.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
-                                else
-                                    -- Çevrede zemin bulunamazsa harita güvenli merkez noktasına at
-                                    hrp.CFrame = CFrame.new(0, 20, 0)
-                                end
+                                -- Lobiye değil, harita içinde katilden uzak güvenli rastgele bir zemine ışınla
+                                local safePos = GetSafeMapPosition(hrp.Position, pHrp.Position)
+                                hrp.CFrame = CFrame.new(safePos)
                             end
                         end
                     end
@@ -448,7 +457,7 @@ task.delay(1.6, function()
                             end
                         end
                     end
-                end)
+                end
             end
             if not _G.SmartFarm then
                 _G.NoclipActive = false
@@ -461,7 +470,7 @@ task.delay(1.6, function()
     end)
 
     -- ==========================================
-    -- 3. GÖRSEL / ESP & ÖZELLİKLER
+    -- 3. GÖRSEL / ESP & ÖZELLİKLER (DÜZELTİLDİ: GUN ESP EKLENDİ)
     -- ==========================================
     AddToggle("Visuals", "Rol ESP (Katil: Kırmızı, Şerif: Mavi)", function(state)
         _G.RoleESP = state
@@ -490,6 +499,28 @@ task.delay(1.6, function()
         end))
     end)
 
+    AddToggle("Visuals", "Yerdeki Silah ESP (GunDrop ESP)", function(state)
+        _G.GunESP = state
+        Track(RunService.RenderStepped:Connect(function()
+            if not _G.GunESP then return end
+            for _, obj in ipairs(Workspace:GetChildren()) do
+                if obj.Name == "GunDrop" then
+                    local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
+                    if handle then
+                        local hl = handle:FindFirstChild("GunHighlight")
+                        if not hl then
+                            hl = Instance.new("Highlight")
+                            hl.Name = "GunHighlight"
+                            hl.FillColor = Color3.fromRGB(255, 215, 0)
+                            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            hl.Parent = handle
+                        end
+                    end
+                end
+            end
+        end))
+    end)
+
     AddToggle("Visuals", "FullBright (Karanlık Haritaları Aydınlat)", function(state)
         _G.FullBright = state
         Track(RunService.RenderStepped:Connect(function()
@@ -501,21 +532,6 @@ task.delay(1.6, function()
                 Lighting.GlobalShadows = true
             end
         end))
-    end)
-
-    AddToggle("Visuals", "X-Ray Duvarlar (Yapıları Şeffaflaştır)", function(state)
-        _G.XRayActive = state
-        pcall(function()
-            for _, part in ipairs(Workspace:GetDescendants()) do
-                if part:IsA("BasePart") and not part:IsDescendantOf(Players.LocalPlayer.Character) then
-                    if state and part.Transparency < 0.5 and part.Name ~= "HumanoidRootPart" then
-                        part.LocalTransparencyModifier = 0.5
-                    else
-                        part.LocalTransparencyModifier = 0
-                    end
-                end
-            end
-        end)
     end)
 
     AddToggle("Visuals", "Hitbox Büyütücü (Kolay Hedef Alma)", function(state)
@@ -575,27 +591,21 @@ task.delay(1.6, function()
         end)
     end)
 
-    AddToggle("Player", "Otomatik Sürekli Zıplama (BunnyHop)", function(state)
-        _G.Bhop = state
-        Track(RunService.RenderStepped:Connect(function()
-            if _G.Bhop and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                if LocalPlayer.Character.Humanoid.FloorMaterial ~= Enum.Material.Air then
-                    LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                end
-            end
-        end))
-    end)
-
     -- ==========================================
-    -- 5. IŞINLANMA ÖZELLİKLERİ
+    -- 5. IŞINLANMA & OTOMATİK SİLAH ALMA (DÜZELTİLDİ)
     -- ==========================================
     AddButton("Teleports", "Yere Düşen Silaha (GunDrop) Işınlan", function()
-        for _, obj in ipairs(Workspace:GetChildren()) do
-            if obj.Name == "GunDrop" and obj:FindFirstChild("Handle") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = obj.Handle.CFrame + Vector3.new(0, 3, 0)
-                break
+        pcall(function()
+            for _, obj in ipairs(Workspace:GetChildren()) do
+                if obj.Name == "GunDrop" then
+                    local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
+                    if handle and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = handle.CFrame + Vector3.new(0, 3, 0)
+                        break
+                    end
+                end
             end
-        end
+        end)
     end)
 
     AddButton("Teleports", "Harita Merkezine Işınlan", function()
@@ -613,23 +623,6 @@ task.delay(1.6, function()
                     if pChar:FindFirstChild("Knife") or (backpack and backpack:FindFirstChild("Knife")) then
                         if pChar:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                             LocalPlayer.Character.HumanoidRootPart.CFrame = pChar.HumanoidRootPart.CFrame * CFrame.new(0, 0, 4)
-                            break
-                        end
-                    end
-                end
-            end
-        end)
-    end)
-
-    AddButton("Teleports", "Şerifin Yanına Işınlan", function()
-        pcall(function()
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character then
-                    local pChar = p.Character
-                    local backpack = p:FindFirstChild("Backpack")
-                    if pChar:FindFirstChild("Gun") or (backpack and backpack:FindFirstChild("Gun")) then
-                        if pChar:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                            LocalPlayer.Character.HumanoidRootPart.CFrame = pChar.HumanoidRootPart.CFrame + Vector3.new(3, 0, 0)
                             break
                         end
                     end
@@ -660,38 +653,20 @@ task.delay(1.6, function()
         Track(RunService.Heartbeat:Connect(function()
             if not _G.AutoGun then return end
             pcall(function()
+                local char = LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+
                 for _, obj in ipairs(Workspace:GetChildren()) do
-                    if obj.Name == "GunDrop" and obj:FindFirstChild("Handle") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = obj.Handle.CFrame
+                    if obj.Name == "GunDrop" then
+                        local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
+                        if handle then
+                            hrp.CFrame = handle.CFrame + Vector3.new(0, 1, 0)
+                        end
                     end
                 end
             end)
         end))
-    end)
-
-    AddButton("Misc", "Katili İzle (Kamera Kilidi)", function()
-        pcall(function()
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character then
-                    local pChar = p.Character
-                    local backpack = p:FindFirstChild("Backpack")
-                    if pChar:FindFirstChild("Knife") or (backpack and backpack:FindFirstChild("Knife")) then
-                        if pChar:FindFirstChild("Humanoid") then
-                            Camera.CameraSubject = pChar.Humanoid
-                            break
-                        end
-                    end
-                end
-            end
-        end)
-    end)
-
-    AddButton("Misc", "Kamerayı Kendine Geri Getir", function()
-        pcall(function()
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                Camera.CameraSubject = LocalPlayer.Character.Humanoid
-            end
-        end)
     end)
 
     AddButton("Misc", "Ekrana Özel Crosshair (Nişangah) Ekle", function()
@@ -707,3 +682,4 @@ task.delay(1.6, function()
         end)
     end)
 end)
+
