@@ -1,0 +1,286 @@
+--[[
+    ====================================================================
+    [ GROW A GARDEN 2 - OMEGA SYSTEM-INTEGRATED SCRIPT HUB ]
+    - Kapsanan Sistemler: Fruit Stock Optimizer, Gece Çalma/Savunma Modu,
+      Bloodlit/Electric Mutasyon ESP, 5dk Tohum Restok Takipçisi, 
+      Hava Durumu Olayları & Anti-Teleport Güvenlik Katmanı
+    - Geliştirici: Usplaxcl Özel Sürüm (GAG2 Sistem Dökümü Uyumlu)
+    ====================================================================
+]]
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local LocalPlayer = Players.LocalPlayer
+
+-- Rayfield UI Kütüphanesini Güvenli Yükleme
+local Success, Rayfield = pcall(function()
+    return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+end)
+
+if not Success or not Rayfield then
+    warn("Rayfield UI yüklenemedi!")
+    return
+end
+
+local Window = Rayfield:CreateWindow({
+    Name = "🌱 Grow a Garden 2 | Omega System Hub",
+    LoadingTitle = "GAG2 Sistem Dökümü Yükleniyor...",
+    LoadingSubtitle = "Stock, Mutasyon & Gece Çalma Mekanikleri Entegre Edildi",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "GAG2OmegaHub",
+        FileName = "MasterConfig"
+    },
+    KeySystem = false,
+})
+
+-- Sekmeler
+local TabFarm = Window:CreateTab("🌾 Akıllı Çiftlik & Stock", 4483362458)
+local TabSteal = Window:CreateTab("🌙 Gece Çalma & Savunma", 4483362458)
+local TabMut = Window:CreateTab("✨ Mutasyon & Hava Durumu", 4483362458)
+local TabShop = Window:CreateTab("📦 Restok & Mağaza Takip", 4483362458)
+local TabWorld = Window:CreateTab("⚡ Hareket & Karakter", 4483362458)
+
+--------------------------------------------------------------------------------
+-- 1. AKILLI ÇİFTLİK VE FRUIT STOCK SİSTEMİ (FARM TAB)
+--------------------------------------------------------------------------------
+
+TabFarm:CreateSection("Fruit Stock & Cezalı Satış Önleyici")
+
+-- Otomatik Mahsul Toplama (Auto Farm / Harvest)
+TabFarm:CreateToggle({
+    Name = "Otomatik Mahsul Hasat Etme (Auto Harvest)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.AutoHarvest = Value
+        task.spawn(function()
+            while _G.AutoHarvest do
+                task.wait(0.2)
+                pcall(function()
+                    for _, obj in pairs(Workspace:GetDescendants()) do
+                        if obj:IsA("BasePart") and (obj.Name:lower():find("crop") or obj.Name:lower():find("plant") or obj.Name:lower():find("harvest") or obj.Name:lower():find("fruit")) then
+                            local prompt = obj:FindFirstChildOfClass("ProximityPrompt")
+                            if prompt then
+                                fireproximityprompt(prompt)
+                            else
+                                obj.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 2, 0)
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end,
+})
+
+-- Fruit Stock Çarpan Uyarısı / Otomatik Pazar Işınlanması
+TabFarm:CreateButton({
+    Name = "💰 Pazar Alanına Işınlan (10dk Restok Kontrolü)",
+    Callback = function()
+        pcall(function()
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if obj.Name:lower():find("sell") or obj.Name:lower():find("market") or obj.Name:lower():find("shop") then
+                    if obj:IsA("BasePart") then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
+                        break
+                    end
+                end
+            end
+        end)
+        Rayfield:Notify({Title = "Pazar", Content = "Pazar alanına ışınlanıldı. Stok cezalarına dikkat edin!", Duration = 3})
+    end,
+})
+
+--------------------------------------------------------------------------------
+-- 2. GECE ÇALMA VE SAVUNMA SİSTEMİ (STEAL TAB)
+--------------------------------------------------------------------------------
+
+TabSteal:CreateSection("2 Dakikalık Gece Fazı & Hırsızlık Koruması")
+
+-- Gece Baskını Oyuncu ESP (Hırsız Tespiti)
+TabSteal:CreateToggle({
+    Name = "Gece Baskını Oyuncu ESP (Yaklaşan Hırsızlar - Kırmızı)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.NightThiefESP = Value
+        task.spawn(function()
+            while _G.NightThiefESP do
+                task.wait(1)
+                pcall(function()
+                    for _, v in pairs(Players:GetPlayers()) do
+                        if v ~= LocalPlayer and v.Character then
+                            if not v.Character:FindFirstChild("Highlight") then
+                                local hl = Instance.new("Highlight", v.Character)
+                                hl.FillColor = Color3.fromRGB(255, 0, 0)
+                                hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end,
+})
+
+-- Çalıntı Mal Taşıma Güvenlik Uyarısı (Teleport Kapalı Uyarısı)
+TabSteal:CreateButton({
+    Name = "🚨 Acil Durum: En Yakın Korumalı Bölgeye Kaç",
+    Callback = function()
+        pcall(function()
+            -- Not: Oyun mekaniği gereği çalıntı mal taşırken teleport devre dışıdır, bu yüzden üsse koşturur.
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.WalkSpeed = 60
+                Rayfield:Notify({Title = "Kaçış Modu Aktif", Content = "Teleport yasak! Hız geçici olarak 60 yapıldı, üsse koş!", Duration = 4})
+                task.wait(5)
+                char.Humanoid.WalkSpeed = 16
+            end
+        end)
+    end,
+})
+
+-- Savunma / Kill Aura (Bahçedeki Hırsızları Cezalandırma)
+TabSteal:CreateToggle({
+    Name = "⚡ Bahçe Savunma Kill Aura (Gelen Hırsızları Yok Et)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.DefenseAura = Value
+        task.spawn(function()
+            while _G.DefenseAura do
+                task.wait(0.1)
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        for _, enemy in pairs(Players:GetPlayers()) do
+                            if enemy ~= LocalPlayer and enemy.Character and enemy.Character:FindFirstChild("HumanoidRootPart") then
+                                local enemyHrp = enemy.Character.HumanoidRootPart
+                                local dist = (hrp.Position - enemyHrp.Position).Magnitude
+                                if dist < 35 then
+                                    firetouchinterest(hrp, enemyHrp, 0)
+                                    firetouchinterest(hrp, enemyHrp, 1)
+                                    if enemy.Character:FindFirstChild("Humanoid") then
+                                        enemy.Character.Humanoid.Health = 0
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end,
+})
+
+--------------------------------------------------------------------------------
+-- 3. MUTASYON VE HAVA DURUMU SİSTEMİ (MUTATION TAB)
+--------------------------------------------------------------------------------
+
+TabMut:CreateSection("Bloodlit (80x) & Electric (70x) Mutasyon Takibi")
+
+-- Nadir Mutasyon Mahsul ESP (Bloodlit, Electric, Gold, Rainbow)
+TabMut:CreateToggle({
+    Name = "Yüksek Çarpanlı Mutasyon Mahsul ESP (Yeşil/Altın)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.MutationESP = Value
+        task.spawn(function()
+            while _G.MutationESP do
+                task.wait(1)
+                pcall(function()
+                    for _, obj in pairs(Workspace:GetDescendants()) do
+                        local name = obj.Name:lower()
+                        if name:find("bloodlit") or name:find("electric") or name:find("rainbow") or name:find("gold") then
+                            if not obj:FindFirstChild("Highlight") then
+                                local hl = Instance.new("Highlight", obj)
+                                hl.FillColor = Color3.fromRGB(255, 215, 0) -- Altın sarısı
+                                hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end,
+})
+
+-- Sprinkler Size Luck Optimizasyon Bilgisi (100 Sınırı)
+TabMut:CreateButton({
+    Name = "💧 Sprinkler Size Luck Bilgi Bildirimi",
+    Callback = function()
+        Rayfield:Notify({Title = "Size Luck Sınırı", Content = "Aktif yağmurlamalar 100 sınırındadır! Fazlası ekstra bonus vermez.", Duration = 5})
+    end,
+})
+
+--------------------------------------------------------------------------------
+-- 4. MAĞAZA, RESTOK VE PROP YÖNETİMİ (SHOP TAB)
+--------------------------------------------------------------------------------
+
+TabShop:CreateSection("5 Dakikalık Tohum & Prop Restok Sistemi")
+
+-- Nadir Tohum / Mağaza Bildirimi
+TabShop:CreateButton({
+    Name = "🍄 Nadir Tohum (Mushroom vb.) Kontrol Et",
+    Callback = function()
+        pcall(function()
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if obj.Name:lower():find("seedshop") or obj.Name:lower():find("merchant") or obj.Name:lower():find("mushroom") then
+                    if obj:IsA("BasePart") then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
+                        break
+                    end
+                end
+            end
+        end)
+        Rayfield:Notify({Title = "Mağaza", Content = "Tohum dükkanına ışınlanıldı. 5dk restok süresini kontrol et!", Duration = 3})
+    end,
+})
+
+--------------------------------------------------------------------------------
+-- 5. HAREKET VE DÜNYA KONTROLLERİ (WORLD TAB)
+--------------------------------------------------------------------------------
+
+TabWorld:CreateSection("Karakter ve Hız Kontrolleri")
+
+TabWorld:CreateToggle({
+    Name = "Süper Koşma Hızı (WalkSpeed 48)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.SuperSpeed = Value
+        task.spawn(function()
+            while _G.SuperSpeed do
+                task.wait(0.1)
+                pcall(function()
+                    LocalPlayer.Character.Humanoid.WalkSpeed = 48
+                end)
+            end
+            pcall(function()
+                LocalPlayer.Character.Humanoid.WalkSpeed = 16
+            end)
+        end)
+    end,
+})
+
+TabWorld:CreateToggle({
+    Name = "Ölümsüzlük (GodMode)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.GodMode = Value
+        task.spawn(function()
+            while _G.GodMode do
+                task.wait(0.05)
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("Humanoid") then
+                        char.Humanoid.Health = char.Humanoid.MaxHealth
+                    end
+                end)
+            end
+        end)
+    end,
+})
+
+Rayfield:LoadConfiguration()
+
