@@ -1,9 +1,8 @@
--- Usplaxcl Multi-Hub GUI
+-- Usplaxcl Multi-Hub GUI (No Images, Custom Colored Names)
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- Eski GUI varsa temizle
 if CoreGui:FindFirstChild("UsplaxclHub") then
     CoreGui.UsplaxclHub:Destroy()
 end
@@ -21,7 +20,7 @@ ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 ToggleBtn.BorderColor3 = Color3.fromRGB(60, 60, 60)
 ToggleBtn.Position = UDim2.new(0, 20, 0.5, -25)
 ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
-ToggleBtn.Image = "rbxassetid://6023426915" -- Şık bir simge ID'si
+ToggleBtn.Image = "rbxassetid://6023426915"
 ToggleBtn.Draggable = true
 
 local ToggleCorner = Instance.new("UICorner")
@@ -118,66 +117,39 @@ local CloseBtnCorner = Instance.new("UICorner")
 CloseBtnCorner.CornerRadius = UDim.new(0, 6)
 CloseBtnCorner.Parent = CloseCheatBtn
 
--- 7 Hilenin Verileri ve Loadstringleri
+-- Hileler ve Her Birine Özel Renkler
 local cheats = {
-    {Name = "MM2 HUB", Icon = "rbxassetid://6023426915", Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/mm2.lua"},
-    {Name = "GROW A GARDEN 2", Icon = "rbxassetid://6023426915", Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/GROW%20A%20GARDEN%202"},
-    {Name = "Fps Hack", Icon = "rbxassetid://6023426915", Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/Fps%20hack"},
-    {Name = "Doors Hack", Icon = "rbxassetid://6023426915", Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/Doors%20hack"},
-    {Name = "Blox Fruit Hack", Icon = "rbxassetid://6023426915", Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/Blox%20fruit%20hack"},
-    {Name = "BUILD A BOAT", Icon = "rbxassetid://6023426915", Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/BUILD%20A%20BOAT"},
-    {Name = "99 NIGHTS IN THE FOREST", Icon = "rbxassetid://6023426915", Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/99%20NIGHTS%20IN%20THE%20FOREST"}
+    {Name = "MM2 HUB", Color = Color3.fromRGB(231, 76, 60), Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/mm2.lua"},
+    {Name = "GROW A GARDEN 2", Color = Color3.fromRGB(46, 204, 113), Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/GROW%20A%20GARDEN%202"},
+    {Name = "Fps Hack", Color = Color3.fromRGB(52, 152, 219), Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/Fps%20hack"},
+    {Name = "Doors Hack", Color = Color3.fromRGB(241, 196, 15), Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/Doors%20hack"},
+    {Name = "Blox Fruit Hack", Color = Color3.fromRGB(230, 126, 34), Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/Blox%20fruit%20hack"},
+    {Name = "BUILD A BOAT", Color = Color3.fromRGB(155, 89, 182), Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/BUILD%20A%20BOAT"},
+    {Name = "99 NIGHTS IN THE FOREST", Color = Color3.fromRGB(26, 188, 156), Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/99%20NIGHTS%20IN%20THE%20FOREST"}
 }
 
 -- Listeyi Oluşturma
 for _, cheat in ipairs(cheats) do
-    local ItemFrame = Instance.new("Frame")
-    ItemFrame.Parent = ScrollingFrame
-    ItemFrame.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
-    ItemFrame.Size = UDim2.new(1, -10, 0, 45)
+    local ItemBtn = Instance.new("TextButton")
+    ItemBtn.Parent = ScrollingFrame
+    ItemBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
+    ItemBtn.Size = UDim2.new(1, -10, 0, 45)
+    ItemBtn.AutoButtonColor = true
+    ItemBtn.Font = Enum.Font.GothamBold
+    ItemBtn.Text = cheat.Name
+    ItemBtn.TextColor3 = cheat.Color
+    ItemBtn.TextSize = 14
+    ItemBtn.TextXAlignment = Enum.TextXAlignment.Center
     
     local ItemCorner = Instance.new("UICorner")
     ItemCorner.CornerRadius = UDim.new(0, 6)
-    ItemCorner.Parent = ItemFrame
+    ItemCorner.Parent = ItemBtn
     
-    local Icon = Instance.new("ImageLabel")
-    Icon.Parent = ItemFrame
-    Icon.BackgroundTransparency = 1
-    Icon.Position = UDim2.new(0, 8, 0.5, -15)
-    Icon.Size = UDim2.new(0, 30, 0, 30)
-    Icon.Image = cheat.Icon
-    
-    local NameLabel = Instance.new("TextLabel")
-    NameLabel.Parent = ItemFrame
-    NameLabel.BackgroundTransparency = 1
-    NameLabel.Position = UDim2.new(0, 48, 0, 0)
-    NameLabel.Size = UDim2.new(0.6, 0, 1, 0)
-    NameLabel.Font = Enum.Font.GothamMedium
-    NameLabel.Text = cheat.Name
-    NameLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
-    NameLabel.TextSize = 13
-    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    
-    local RunBtn = Instance.new("TextButton")
-    RunBtn.Parent = ItemFrame
-    RunBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-    RunBtn.Position = UDim2.new(1, -75, 0.5, -14)
-    RunBtn.Size = UDim2.new(0, 65, 0, 28)
-    RunBtn.Font = Enum.Font.GothamBold
-    RunBtn.Text = "AÇ"
-    RunBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    RunBtn.TextSize = 12
-    
-    local RunCorner = Instance.new("UICorner")
-    RunCorner.CornerRadius = UDim.new(0, 4)
-    RunCorner.Parent = RunBtn
-    
-    -- Çalıştırma Butonu Olayı
-    RunBtn.MouseButton1Click:Connect(function()
+    -- Çalıştırma Olayı
+    ItemBtn.MouseButton1Click:Connect(function()
         pcall(function()
             loadstring(game:HttpGet(cheat.Url))()
         end)
-        -- Aktif hile ekranına geçiş yap ve yanına kırmızı çarpı koy
         ActiveText.Text = "Aktif: " .. cheat.Name
         ScrollingFrame.Visible = false
         ActiveFrame.Visible = true
