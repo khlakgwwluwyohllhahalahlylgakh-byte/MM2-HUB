@@ -1,5 +1,5 @@
 -- ==========================================
--- MM2 Masterpiece Hub v14.0 | Ultimate Final Combined Edition
+-- MM2 Masterpiece Hub v14.1 | Ultimate Safe Teleport Edition
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -46,7 +46,7 @@ LoadTitle.BackgroundTransparency = 1
 LoadTitle.Size = UDim2.new(1, 0, 0, 40)
 LoadTitle.Position = UDim2.new(0, 0, 0.15, 0)
 LoadTitle.Font = Enum.Font.GothamBold
-LoadTitle.Text = "MM2 Masterpiece v14.0"
+LoadTitle.Text = "MM2 Masterpiece v14.1"
 LoadTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 LoadTitle.TextSize = 18
 
@@ -56,7 +56,7 @@ LoadStatus.BackgroundTransparency = 1
 LoadStatus.Size = UDim2.new(1, 0, 0, 30)
 LoadStatus.Position = UDim2.new(0, 0, 0.55, 0)
 LoadStatus.Font = Enum.Font.Gotham
-LoadStatus.Text = "Tüm Özellikler ve Motor Birleştiriliyor..."
+LoadStatus.Text = "Güvenli Zemin Motoru ve Özellikler Yükleniyor..."
 LoadStatus.TextColor3 = Color3.fromRGB(170, 170, 180)
 LoadStatus.TextSize = 13
 
@@ -171,7 +171,7 @@ task.delay(1.6, function()
     Title.Position = UDim2.new(0.03, 0, 0, 0)
     Title.Size = UDim2.new(0.6, 0, 1, 0)
     Title.Font = Enum.Font.GothamBold
-    Title.Text = "MM2 Masterpiece Hub v14.0 | Ultimate Final"
+    Title.Text = "MM2 Masterpiece Hub v14.1 | Safe Teleport"
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.TextSize = 14
     Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -336,9 +336,9 @@ task.delay(1.6, function()
     end))
 
     -- ==========================================
-    -- 1. GÜVENLİ KORUMA ÖZELLİKLERİ
+    -- 1. GÜVENLİ KORUMA ÖZELLİKLERİ (DÜZELTİLDİ: BOŞLUĞA DEĞİL ZEMİNE IŞINLANMA)
     -- ==========================================
-    AddToggle("Protection", "Acil Kaçış Kalkanı (Katil Yaklaşınca Işınlan)", function(state)
+    AddToggle("Protection", "Acil Kaçış Kalkanı (Katil Yaklaşınca Güvenli Bloğa)", function(state)
         _G.EmergencyDodge = state
         Track(RunService.Heartbeat:Connect(function()
             if not _G.EmergencyDodge then return end
@@ -357,8 +357,26 @@ task.delay(1.6, function()
                         if isMurderer and pHrp then
                             local dist = (hrp.Position - pHrp.Position).Magnitude
                             if dist < 14 then
-                                local safePos = hrp.Position + ((hrp.Position - pHrp.Position).Unit * 35) + Vector3.new(0, 5, 0)
-                                hrp.CFrame = CFrame.new(safePos)
+                                -- Katilin tersi yönünde kaçış açısı hesapla
+                                local escapeDir = (hrp.Position - pHrp.Position)
+                                escapeDir = Vector3.new(escapeDir.X, 0, escapeDir.Z).Unit
+                                
+                                local targetPos = hrp.Position + (escapeDir * 32) + Vector3.new(0, 15, 0)
+                                
+                                -- Aşağıya doğru Raycast atarak katı zemin (CanCollide blok) ara
+                                local raycastParams = RaycastParams.new()
+                                raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+                                raycastParams.IgnoreWater = true
+                                raycastParams.FilterDescendantsInstances = {char, pChar}
+                                
+                                local rayResult = Workspace:Raycast(targetPos, Vector3.new(0, -60, 0), raycastParams)
+                                if rayResult and rayResult.Instance and rayResult.Instance.CanCollide then
+                                    -- Kesinlikle sağlam bir bloğun üstüne ışınla
+                                    hrp.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
+                                else
+                                    -- Çevrede zemin bulunamazsa harita güvenli merkez noktasına at
+                                    hrp.CFrame = CFrame.new(0, 20, 0)
+                                end
                             end
                         end
                     end
@@ -443,7 +461,7 @@ task.delay(1.6, function()
     end)
 
     -- ==========================================
-    -- 3. GÖRSEL / ESP & 10 ÖZELLİK
+    -- 3. GÖRSEL / ESP & ÖZELLİKLER
     -- ==========================================
     AddToggle("Visuals", "Rol ESP (Katil: Kırmızı, Şerif: Mavi)", function(state)
         _G.RoleESP = state
