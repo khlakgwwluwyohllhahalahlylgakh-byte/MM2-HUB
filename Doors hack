@@ -1,9 +1,11 @@
+
 -- ==========================================================
--- DOORS ULTIMATE MASTER AI HUB | RAYFIELD v11.0 (FINAL)
+-- DOORS ULTIMATE MASTER AI HUB | RAYFIELD v11.5 (FINAL)
 -- ==========================================================
 -- ✅ Bütün hatalar düzeltildi
 -- ✅ Şifre çözme sistemi entegre
 -- ✅ İstatistikler, logging, ESP
+-- ✅ ÇALIŞMA BUTONU EKLENDI
 -- ✅ Tüm fonksiyonlar optimize edildi
 -- ==========================================================
 
@@ -51,7 +53,7 @@ _G.LibrarySystem = {
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Doors Master AI Hub v11.0 FINAL",
+   Name = "Doors Master AI Hub v11.5 FINAL",
    LoadingTitle = "Yapay Zeka Yükleniyor...",
    LoadingSubtitle = "by Usplaxcl - Full Otomasyon + Şifre Çözme",
    ConfigurationSaving = { Enabled = false },
@@ -63,13 +65,14 @@ local AITab = Window:CreateTab("Yapay Zeka", "cpu")
 local ESPTab = Window:CreateTab("Görsel & ESP", "eye")
 local LibraryTab = Window:CreateTab("Kütüphane", "book")
 local StatsTab = Window:CreateTab("İstatistikler", "bar")
+local ControlTab = Window:CreateTab("Kontrol Paneli", "play")
 
 -- ==========================================================
 -- LOG SISTEMI
 -- ==========================================================
 local function Log(msg)
     if _G.Settings.DebugMode then
-        print("[DOORS AI v11] " .. msg)
+        print("[DOORS AI v11.5] " .. msg)
     end
 end
 
@@ -183,6 +186,166 @@ task.spawn(function()
         )
     end
 end)
+
+-- ==========================================================
+-- KONTROL PANELİ (BUTONLAR)
+-- ==========================================================
+ControlTab:CreateSection("🎮 Hızlı Kontrol Butonları")
+
+ControlTab:CreateButton({
+    Name = "▶️  AI'YI BAŞLAT",
+    Callback = function()
+        _G.Settings.AIBot = true
+        _G.CancelWalk = false
+        Rayfield:Notify({
+            Title = "✅ AI BAŞLADI!",
+            Content = "Yapay zeka kontrol aldı. Başarılar!",
+            Duration = 3,
+            Image = 4483362458
+        })
+        Log("AI BAŞLATILDI (Buton)")
+    end,
+})
+
+ControlTab:CreateButton({
+    Name = "⏹️  AI'YI DURDUR",
+    Callback = function()
+        _G.Settings.AIBot = false
+        _G.CancelWalk = true
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = 16
+        end
+        Rayfield:Notify({
+            Title = "⏹️ AI DURDURULDU",
+            Content = "Kontrol oyuncuya geçti.",
+            Duration = 2
+        })
+        Log("AI DURDURULDU (Buton)")
+    end,
+})
+
+ControlTab:CreateSection("💡 Görsel Ayarlar")
+
+ControlTab:CreateButton({
+    Name = "💡 Fullbright AÇ",
+    Callback = function()
+        _G.Settings.Fullbright = true
+        Rayfield:Notify({
+            Title = "💡 Fullbright Açıldı",
+            Content = "Harita aydınlandı.",
+            Duration = 2
+        })
+        Log("Fullbright AÇILDI (Buton)")
+    end,
+})
+
+ControlTab:CreateButton({
+    Name = "🌙 Fullbright KAPA",
+    Callback = function()
+        _G.Settings.Fullbright = false
+        Rayfield:Notify({
+            Title = "🌙 Fullbright Kapandı",
+            Content = "Normal görüş geri döndü.",
+            Duration = 2
+        })
+        Log("Fullbright KAPANDI (Buton)")
+    end,
+})
+
+ControlTab:CreateButton({
+    Name = "👹 Entity ESP AÇ",
+    Callback = function()
+        _G.Settings.EntityESP = true
+        Rayfield:Notify({
+            Title = "👹 Entity ESP Açıldı",
+            Content = "Yaratıklar vurgulanıyor.",
+            Duration = 2
+        })
+        Log("Entity ESP AÇILDI (Buton)")
+    end,
+})
+
+ControlTab:CreateButton({
+    Name = "👁️ Entity ESP KAPA",
+    Callback = function()
+        _G.Settings.EntityESP = false
+        Rayfield:Notify({
+            Title = "👁️ Entity ESP Kapandı",
+            Content = "Vurgular kaldırıldı.",
+            Duration = 2
+        })
+        Log("Entity ESP KAPANDI (Buton)")
+    end,
+})
+
+ControlTab:CreateSection("🔧 Ayarlar & Debug")
+
+ControlTab:CreateButton({
+    Name = "🐛 Debug Modu AÇ",
+    Callback = function()
+        _G.Settings.DebugMode = true
+        print("\n=== DOORS AI DEBUG MODU AÇILDI ===\n")
+        Rayfield:Notify({
+            Title = "🐛 Debug Modu Açıldı",
+            Content = "Console'da loglar görünecek.",
+            Duration = 2
+        })
+    end,
+})
+
+ControlTab:CreateButton({
+    Name = "🔇 Debug Modu KAPA",
+    Callback = function()
+        _G.Settings.DebugMode = false
+        Rayfield:Notify({
+            Title = "🔇 Debug Modu Kapandı",
+            Content = "Loglar gizlendi.",
+            Duration = 2
+        })
+    end,
+})
+
+ControlTab:CreateButton({
+    Name = "📊 İstatistikleri Sıfırla",
+    Callback = function()
+        _G.BotStats = {
+            RoomsCleared = 0,
+            EntitiesAvoided = 0,
+            LibrarySolved = 0,
+            StartTime = tick()
+        }
+        Rayfield:Notify({
+            Title = "📊 İstatistikler Sıfırlandı",
+            Content = "Yeni oturum başladı.",
+            Duration = 2
+        })
+        Log("İstatistikler SIFIRANDI (Buton)")
+    end,
+})
+
+ControlTab:CreateSection("⚠️ Acil İşlemler")
+
+ControlTab:CreateButton({
+    Name = "🛑 TÜMÜNÜ DURDUR (Emergency)",
+    Callback = function()
+        _G.DoorsAI_Running = false
+        _G.Settings.AIBot = false
+        _G.CancelWalk = true
+        
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = 16
+        end
+        
+        Rayfield:Notify({
+            Title = "🛑 ACİL DURDURMA",
+            Content = "Tüm işlemler durduruldu!",
+            Duration = 3
+        })
+        Log("ACİL DURDURMA BAŞLATILDI")
+    end,
+})
 
 -- ==========================================================
 -- YAPAY ZEKA VE PATHFINDING MOTORU
@@ -802,10 +965,10 @@ end)
 
 -- Çıkış bildirimini göster
 Rayfield:Notify({
-   Title = "Doors Master AI v11.0 FINAL ✅",
-   Content = "Tüm modüller entegre edildi!\n✓ AI Otomasyon\n✓ Şifre Çözme Sistemi\n✓ ESP & Fullbright\n✓ İstatistikler\nBaşarılar! 🎮",
+   Title = "Doors Master AI v11.5 FINAL ✅",
+   Content = "Tüm modüller entegre edildi!\n✓ AI Otomasyon\n✓ Şifre Çözme Sistemi\n✓ ESP & Fullbright\n✓ İstatistikler\n✓ KONTROL BUTONLARI EKLENDI\nBaşarılar! 🎮",
    Duration = 6,
    Image = 4483362458,
 })
 
-Log("=== Doors Master AI v11.0 FINAL Başlatıldı ===")
+Log("=== Doors Master AI v11.5 FINAL Başlatıldı ===")
