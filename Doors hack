@@ -1,5 +1,5 @@
 -- ==========================================================
--- DOORS ULTIMATE SMART AUTO-PLAY HUB | MM2 Style UI v3.0
+-- DOORS ULTIMATE SMART AUTO-PLAY HUB | MOBILE v5.0
 -- ==========================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -10,171 +10,256 @@ local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local StarterGui = game:GetService("StarterGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TouchInputService = game:GetService("TouchInputService") -- 📱 Mobil dokunmatik
 
--- Eski arayüzleri temizle
-if CoreGui:FindFirstChild("DoorsProHub") then CoreGui.DoorsProHub:Destroy() end
-if CoreGui:FindFirstChild("DoorsToggleBtn") then CoreGui.DoorsToggleBtn:Destroy() end
-if CoreGui:FindFirstChild("DoorsLoading") then CoreGui.DoorsLoading:Destroy() end
+-- Cihaz kontrolü
+local isMobile = UserInputService.TouchEnabled or UserInputService.KeyboardEnabled == false
+local isPC = not isMobile
+
+-- Mouse sadece PC'de
+local mouse = isPC and LocalPlayer:GetMouse() or nil
+
+-- Anti-Ban koruması
+if _G.DoorsHubVersion then return end
+_G.DoorsHubVersion = "5.0-Mobile"
+
+-- Eski arayüzleri temizle (güvenli)
+local function SafeDestroy(instance)
+    pcall(function()
+        if instance then instance:Destroy() end
+    end)
+end
+
+SafeDestroy(CoreGui:FindFirstChild("DoorsProHub"))
+SafeDestroy(CoreGui:FindFirstChild("DoorsToggleBtn"))
+SafeDestroy(CoreGui:FindFirstChild("DoorsLoading"))
+SafeDestroy(CoreGui:FindFirstChild("DoorsESPContainer"))
+SafeDestroy(CoreGui:FindFirstChild("MobileTouchControls"))
 
 -- ==========================================================
--- 1. ADIM: YÜKLEME ANİMASYONU VE ARAYÜZ SİSTEMİ
+-- 1. ADIM: MOBİL UYUMLU ARAYÜZ SİSTEMİ
 -- ==========================================================
 local LoadingGui = Instance.new("ScreenGui")
 LoadingGui.Name = "DoorsLoading"
 LoadingGui.Parent = CoreGui
 LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+LoadingGui.IgnoreGuiInset = true
 
 local LoadFrame = Instance.new("Frame")
 LoadFrame.Parent = LoadingGui
 LoadFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
-LoadFrame.Size = UDim2.new(0, 380, 0, 130)
-LoadFrame.Position = UDim2.new(0.5, -190, 0.5, -65)
+LoadFrame.Size = UDim2.new(0, 320, 0, 120) -- 📱 Daha küçük mobil boyut
+LoadFrame.Position = UDim2.new(0.5, -160, 0.5, -60)
+LoadFrame.BorderSizePixel = 0
+LoadFrame.Active = true
+LoadFrame.Draggable = true
 
 local LoadCorner = Instance.new("UICorner")
-LoadCorner.CornerRadius = UDim.new(0, 12)
+LoadCorner.CornerRadius = UDim.new(0, 15) -- 📱 Daha yuvarlak köşeler
 LoadCorner.Parent = LoadFrame
 
 local LoadStroke = Instance.new("UIStroke")
 LoadStroke.Parent = LoadFrame
 LoadStroke.Color = Color3.fromRGB(120, 0, 255)
 LoadStroke.Thickness = 2
+LoadStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 local LoadTitle = Instance.new("TextLabel")
 LoadTitle.Parent = LoadFrame
 LoadTitle.BackgroundTransparency = 1
-LoadTitle.Size = UDim2.new(1, 0, 0, 40)
-LoadTitle.Position = UDim2.new(0, 0, 0.15, 0)
+LoadTitle.Size = UDim2.new(1, 0, 0, 35)
+LoadTitle.Position = UDim2.new(0, 0, 0.1, 0)
 LoadTitle.Font = Enum.Font.GothamBold
-LoadTitle.Text = "Doors Smart Automation v3.0"
+LoadTitle.Text = "📱 Doors Mobile v5.0" -- 📱 Mobil başlık
 LoadTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-LoadTitle.TextSize = 18
+LoadTitle.TextSize = 16 -- 📱 Daha büyük font mobil için
 LoadTitle.TextXAlignment = Enum.TextXAlignment.Center
+LoadTitle.TextYAlignment = Enum.TextYAlignment.Center
 
 local LoadStatus = Instance.new("TextLabel")
 LoadStatus.Parent = LoadFrame
 LoadStatus.BackgroundTransparency = 1
-LoadStatus.Size = UDim2.new(1, 0, 0, 30)
-LoadStatus.Position = UDim2.new(0, 0, 0.55, 0)
+LoadStatus.Size = UDim2.new(1, 0, 0, 25)
+LoadStatus.Position = UDim2.new(0, 0, 0.6, 0)
 LoadStatus.Font = Enum.Font.Gotham
-LoadStatus.Text = "Akıllı Yaratık Algılama ve Otomasyon Yükleniyor..."
+LoadStatus.Text = "📱 Dokunmatik kontroller yükleniyor..."
 LoadStatus.TextColor3 = Color3.fromRGB(170, 170, 180)
-LoadStatus.TextSize = 12
+LoadStatus.TextSize = 11
 LoadStatus.TextXAlignment = Enum.TextXAlignment.Center
+LoadStatus.TextYAlignment = Enum.TextYAlignment.Center
 
 task.delay(1.5, function()
     TweenService:Create(LoadFrame, TweenInfo.new(0.4), {Size = UDim2.new(0,0,0,0), BackgroundTransparency = 1}):Play()
     task.wait(0.4)
     LoadingGui:Destroy()
-
+    
+    -- Ana GUI
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "DoorsProHub"
     ScreenGui.Parent = CoreGui
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-    local ToggleGui = Instance.new("ScreenGui")
-    ToggleGui.Name = "DoorsToggleBtn"
-    ToggleGui.Parent = CoreGui
-    ToggleGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-    -- Açma / Kapama Yüzen Tuş
+    ScreenGui.IgnoreGuiInset = true -- 📱 SafeArea'ya uyum
+    
+    -- ESP container
+    local ESPContainer = Instance.new("Folder")
+    ESPContainer.Name = "DoorsESPContainer"
+    ESPContainer.Parent = Workspace
+    
+    -- 📱 MOBİL DOKUNMATİK KONTROL BUTONLARI
+    local MobileControls = Instance.new("ScreenGui")
+    MobileControls.Name = "MobileTouchControls"
+    MobileControls.Parent = CoreGui
+    MobileControls.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    MobileControls.IgnoreGuiInset = true
+    
+    -- 📱 Açma/Kapama Butonu (Mobil için daha büyük)
     local FloatButton = Instance.new("TextButton")
-    FloatButton.Parent = ToggleGui
+    FloatButton.Parent = MobileControls
     FloatButton.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-    FloatButton.Position = UDim2.new(0.02, 0, 0.4, 0)
-    FloatButton.Size = UDim2.new(0, 56, 0, 56)
+    FloatButton.Position = UDim2.new(0.75, 0, 0.8, 0) -- 📱 Sağ alt köşe
+    FloatButton.Size = UDim2.new(0, 65, 0, 65) -- 📱 Daha büyük mobil buton
     FloatButton.Font = Enum.Font.GothamBold
-    FloatButton.Text = "DOORS\nSMART"
+    FloatButton.Text = "🪽\nHUB"
     FloatButton.TextColor3 = Color3.fromRGB(150, 0, 255)
-    FloatButton.TextSize = 10
+    FloatButton.TextSize = 11
     FloatButton.Active = true
     FloatButton.Draggable = true
-
+    FloatButton.ZIndex = 10
+    FloatButton.BorderSizePixel = 0
+    
     local FloatCorner = Instance.new("UICorner")
-    FloatCorner.CornerRadius = UDim.new(1, 0)
+    FloatCorner.CornerRadius = UDim.new(0.5, 0) -- 📱 Daha yuvarlak
     FloatCorner.Parent = FloatButton
-
+    
     local FloatStroke = Instance.new("UIStroke")
     FloatStroke.Parent = FloatButton
     FloatStroke.Color = Color3.fromRGB(150, 0, 255)
-    FloatStroke.Thickness = 2
-
-    -- Ana Pencere
+    FloatStroke.Thickness = 2.5
+    FloatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    
+    -- 📱 Ana Panel (Mobil için tam ekran)
     local MainFrame = Instance.new("Frame")
     MainFrame.Parent = ScreenGui
     MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
-    MainFrame.Position = UDim2.new(0.5, -300, 0.5, -210)
-    MainFrame.Size = UDim2.new(0, 600, 0, 420)
+    MainFrame.Position = UDim2.new(0.02, 0, 0.05, 0) -- 📱 Kenarlarda boşluk
+    MainFrame.Size = UDim2.new(0.96, 0, 0.9, 0) -- 📱 Neredeyse tam ekran
     MainFrame.Active = true
-    MainFrame.Draggable = true
+    MainFrame.Draggable = false -- 📱 Mobilde sürükleme yok
     MainFrame.Visible = false
-
+    MainFrame.BorderSizePixel = 0
+    MainFrame.ClipsDescendants = true
+    
     local MainCorner = Instance.new("UICorner")
-    MainCorner.CornerRadius = UDim.new(0, 10)
+    MainCorner.CornerRadius = UDim.new(0, 15) -- 📱 Daha yuvarlak
     MainCorner.Parent = MainFrame
-
+    
     FloatButton.MouseButton1Click:Connect(function()
         MainFrame.Visible = not MainFrame.Visible
+        if MainFrame.Visible then
+            MainFrame.BackgroundTransparency = 0.1
+            TweenService:Create(MainFrame, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
+        end
     end)
-
-    -- Üst Bar
+    
+    -- 📱 Üst Bar (Mobil için optimize)
     local TopBar = Instance.new("Frame")
     TopBar.Parent = MainFrame
     TopBar.BackgroundColor3 = Color3.fromRGB(25, 25, 34)
-    TopBar.Size = UDim2.new(1, 0, 0, 42)
-
-    local TopCorner = Instance.new("UICorner")
-    TopCorner.CornerRadius = UDim.new(0, 10)
-    TopCorner.Parent = TopBar
-
+    TopBar.Size = UDim2.new(1, 0, 0, 50) -- 📱 Daha kalın üst bar
+    TopBar.BorderSizePixel = 0
+    
+    local TopBarCorner = Instance.new("UICorner")
+    TopBarCorner.CornerRadius = UDim.new(0, 15)
+    TopBarCorner.Parent = TopBar
+    
+    local TopBarFill = Instance.new("Frame")
+    TopBarFill.Parent = TopBar
+    TopBarFill.BackgroundColor3 = Color3.fromRGB(25, 25, 34)
+    TopBarFill.Size = UDim2.new(1, 0, 0.5, 0)
+    TopBarFill.Position = UDim2.new(0, 0, 0.5, 0)
+    TopBarFill.BorderSizePixel = 0
+    
     local Title = Instance.new("TextLabel")
     Title.Parent = TopBar
     Title.BackgroundTransparency = 1
     Title.Position = UDim2.new(0.03, 0, 0, 0)
-    Title.Size = UDim2.new(0.7, 0, 1, 0)
+    Title.Size = UDim2.new(0.6, 0, 1, 0)
     Title.Font = Enum.Font.GothamBold
-    Title.Text = "Doors Smart Hub | Akıllı 100. Kapı Otomasyonu"
+    Title.Text = "📱 Doors Hub Mobile"
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.TextSize = 13
+    Title.TextSize = 14
     Title.TextXAlignment = Enum.TextXAlignment.Left
-
+    Title.TextYAlignment = Enum.TextYAlignment.Center
+    
+    -- 📱 Kapatma butonu (Mobil için daha büyük)
     local CloseButton = Instance.new("TextButton")
     CloseButton.Parent = TopBar
     CloseButton.BackgroundColor3 = Color3.fromRGB(220, 45, 45)
-    CloseButton.Position = UDim2.new(0.93, 0, 0.2, 0)
-    CloseButton.Size = UDim2.new(0, 26, 0, 26)
+    CloseButton.Position = UDim2.new(0.9, 0, 0.2, 0)
+    CloseButton.Size = UDim2.new(0, 32, 0, 32) -- 📱 Daha büyük
     CloseButton.Font = Enum.Font.GothamBold
-    CloseButton.Text = "X"
+    CloseButton.Text = "✕"
     CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    CloseButton.TextSize = 13
-
+    CloseButton.TextSize = 16
+    CloseButton.BorderSizePixel = 0
+    
     local CloseCorner = Instance.new("UICorner")
-    CloseCorner.CornerRadius = UDim.new(0, 6)
+    CloseCorner.CornerRadius = UDim.new(0, 8)
     CloseCorner.Parent = CloseButton
-
+    
     CloseButton.MouseButton1Click:Connect(function()
         ScreenGui:Destroy()
-        ToggleGui:Destroy()
+        MobileControls:Destroy()
+        SafeDestroy(ESPContainer)
+        _G.Settings.FlightMode = false
+        _G.Settings.Noclip = false
     end)
-
-    -- Sol Sekme Menüsü (Sidebar)
-    local Sidebar = Instance.new("Frame")
-    Sidebar.Parent = MainFrame
-    Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
-    Sidebar.Position = UDim2.new(0, 0, 0, 42)
-    Sidebar.Size = UDim2.new(0, 150, 1, -42)
-
-    local SidebarLayout = Instance.new("UIListLayout")
-    SidebarLayout.Parent = Sidebar
-    SidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    SidebarLayout.Padding = UDim.new(0, 4)
-
+    
+    -- 📱 MOBİL SEKMELER (Üstte yatay kaydırma)
+    local TabBar = Instance.new("Frame")
+    TabBar.Parent = MainFrame
+    TabBar.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+    TabBar.Position = UDim2.new(0, 0, 0, 50)
+    TabBar.Size = UDim2.new(1, 0, 0, 45)
+    TabBar.BorderSizePixel = 0
+    
+    local TabScrolling = Instance.new("ScrollingFrame")
+    TabScrolling.Parent = TabBar
+    TabScrolling.BackgroundTransparency = 1
+    TabScrolling.Size = UDim2.new(1, 0, 1, 0)
+    TabScrolling.CanvasSize = UDim2.new(2, 0, 0, 0) -- 📱 Yatay kaydırma
+    TabScrolling.ScrollBarThickness = 0
+    TabScrolling.ScrollingDirection = Enum.ScrollingDirection.X -- 📱 Yatay scroll
+    TabScrolling.BorderSizePixel = 0
+    TabScrolling.AutomaticCanvasSize = Enum.AutomaticSize.X
+    
+    local TabLayout = Instance.new("UIListLayout")
+    TabLayout.Parent = TabScrolling
+    TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    TabLayout.Padding = UDim.new(0, 5)
+    TabLayout.FillDirection = Enum.FillDirection.Horizontal -- 📱 Yatay dizilim
+    TabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    
+    local TabPadding = Instance.new("UIPadding")
+    TabPadding.Parent = TabScrolling
+    TabPadding.PaddingLeft = UDim.new(0, 10)
+    TabPadding.PaddingRight = UDim.new(0, 10)
+    
+    -- İçerik Alanı
     local Container = Instance.new("Frame")
     Container.Parent = MainFrame
     Container.BackgroundTransparency = 1
-    Container.Position = UDim2.new(0, 160, 0, 50)
-    Container.Size = UDim2.new(1, -170, 1, -60)
-
+    Container.Position = UDim2.new(0, 0, 0, 100)
+    Container.Size = UDim2.new(1, 0, 1, -100)
+    Container.BorderSizePixel = 0
+    
+    -- Sayfa sistemi
     local pages = {}
+    local currentPage = nil
+    
     local function CreatePage(name)
         local ScrollingFrame = Instance.new("ScrollingFrame")
         ScrollingFrame.Name = name .. "Page"
@@ -182,205 +267,852 @@ task.delay(1.5, function()
         ScrollingFrame.Active = true
         ScrollingFrame.BackgroundTransparency = 1
         ScrollingFrame.Size = UDim2.new(1, 0, 1, 0)
-        ScrollingFrame.CanvasSize = UDim2.new(0, 0, 3, 0)
+        ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
         ScrollingFrame.ScrollBarThickness = 4
+        ScrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(120, 0, 255)
         ScrollingFrame.Visible = false
-
+        ScrollingFrame.BorderSizePixel = 0
+        ScrollingFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+        ScrollingFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        ScrollingFrame.ScrollBarImageTransparency = 0.5 -- 📱 Daha şeffaf scrollbar
+        
+        -- 📱 Dokunmatik scroll için
+        ScrollingFrame.TouchSwipeDirection = Enum.SwipeDirection.Y
+        
         local Layout = Instance.new("UIListLayout")
         Layout.Parent = ScrollingFrame
         Layout.SortOrder = Enum.SortOrder.LayoutOrder
-        Layout.Padding = UDim.new(0, 8)
-
+        Layout.Padding = UDim.new(0, 12) -- 📱 Daha fazla boşluk
+        Layout.FillDirection = Enum.FillDirection.Vertical
+        Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        
+        local Padding = Instance.new("UIPadding")
+        Padding.Parent = ScrollingFrame
+        Padding.PaddingTop = UDim.new(0, 15)
+        Padding.PaddingBottom = UDim.new(0, 15)
+        
         pages[name] = ScrollingFrame
         return ScrollingFrame
     end
-
+    
     local function SwitchPage(name)
-        for _, page in pairs(pages) do page.Visible = false end
-        if pages[name] then pages[name].Visible = true end
-    end
-
-    local function CreateTab(name, targetPage)
-        local TabButton = Instance.new("TextButton")
-        TabButton.Parent = Sidebar
-        TabButton.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-        TabButton.Size = UDim2.new(1, 0, 0, 32)
-        TabButton.Font = Enum.Font.GothamMedium
-        TabButton.Text = name
-        TabButton.TextColor3 = Color3.fromRGB(180, 180, 190)
-        TabButton.TextSize = 11
-
-        TabButton.MouseButton1Click:Connect(function()
-            SwitchPage(targetPage)
-        end)
-    end
-
-    CreatePage("AutoPlay")
-    CreatePage("Visuals")
-    CreatePage("Player")
-
-    CreateTab("Akıllı Otomasyon", "AutoPlay")
-    CreateTab("Görsel / ESP", "Visuals")
-    CreateTab("Karakter", "Player")
-
-    SwitchPage("AutoPlay")
-
-    local function AddToggle(page, text, setting)
-        _G.Settings = _G.Settings or {}
-        _G.Settings[setting] = false
-
-        local ToggleBtn = Instance.new("TextButton")
-        ToggleBtn.Parent = pages[page]
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
-        ToggleBtn.Size = UDim2.new(0.95, 0, 0, 36)
-        ToggleBtn.Font = Enum.Font.Gotham
-        ToggleBtn.Text = "  [OFF] " .. text
-        ToggleBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
-        ToggleBtn.TextSize = 11
-        ToggleBtn.TextXAlignment = Enum.TextXAlignment.Left
-
-        local Corner = Instance.new("UICorner")
-        Corner.CornerRadius = UDim.new(0, 6)
-        Corner.Parent = ToggleBtn
-
-        ToggleBtn.MouseButton1Click:Connect(function()
-            _G.Settings[setting] = not _G.Settings[setting]
-            if _G.Settings[setting] then
-                ToggleBtn.Text = "  [ON] " .. text
-                ToggleBtn.BackgroundColor3 = Color3.fromRGB(120, 0, 255)
-            else
-                ToggleBtn.Text = "  [OFF] " .. text
-                ToggleBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
-            end
-        end)
-    end
-
-    -- Otomasyon Seçenekleri
-    AddToggle("AutoPlay", "Akıllı Otomatik Kapı ve İlerleme", "AutoPlayMaster")
-    AddToggle("AutoPlay", "Kütüphane Şifre ve Kitap Çözücü", "LibrarySolver")
-    AddToggle("AutoPlay", "Anahtar ve Nesne Toplayıcı", "AutoKey")
-    
-    -- Görsel Seçenekleri
-    AddToggle("Visuals", "Fullbright (Karanlığı Kaldır)", "Fullbright")
-    AddToggle("Visuals", "Canavar ve Varlık ESP", "EntityESP")
-    
-    -- Karakter Seçenekleri
-    AddToggle("Player", "Hızlı Koşma (WalkSpeed 22)", "SpeedBoost")
-end)
-
--- ==========================================================
--- 2. ADIM: MOTORLAR VE AKILLI YARATIK TESPİT SİSTEMİ
--- ==========================================================
-
--- Fullbright Motoru
-RunService.RenderStepped:Connect(function()
-    if _G.Settings and _G.Settings.Fullbright then
-        Lighting.Brightness = 2
-        Lighting.ClockTime = 14
-        Lighting.FogEnd = 100000
-        Lighting.GlobalShadows = false
-    end
-end)
-
--- Hız Motoru
-RunService.RenderStepped:Connect(function()
-    if _G.Settings and _G.Settings.SpeedBoost and LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
-        if hum then hum.WalkSpeed = 22 end
-    end
-end)
-
--- Canavar ve Varlık ESP Motoru
-RunService.RenderStepped:Connect(function()
-    if _G.Settings and _G.Settings.EntityESP then
-        for _, v in pairs(Workspace:GetDescendants()) do
-            if v.Name == "RushMoving" or v.Name == "AmbushMoving" or v.Name == "Figure" then
-                if not v:FindFirstChild("DoorsESP") then
-                    local hl = Instance.new("Highlight")
-                    hl.Name = "DoorsESP"
-                    hl.FillColor = Color3.fromRGB(255, 0, 0)
-                    hl.Parent = v
+        if currentPage == name then return end
+        currentPage = name
+        
+        for _, page in pairs(pages) do 
+            page.Visible = false 
+        end
+        
+        if pages[name] then 
+            pages[name].Visible = true
+            pages[name].CanvasPosition = Vector2.new(0, 0)
+        end
+        
+        -- Tab butonlarını güncelle
+        for _, btn in ipairs(TabScrolling:GetChildren()) do
+            if btn:IsA("TextButton") and btn:GetAttribute("PageTarget") then
+                if btn:GetAttribute("PageTarget") == name then
+                    btn.BackgroundColor3 = Color3.fromRGB(120, 0, 255)
+                    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    btn.Size = UDim2.new(0, 100, 0, 35) -- 📱 Aktif tab daha geniş
+                else
+                    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+                    btn.TextColor3 = Color3.fromRGB(180, 180, 190)
+                    btn.Size = UDim2.new(0, 85, 0, 35)
                 end
             end
         end
-    else
-        for _, v in pairs(Workspace:GetDescendants()) do
-            if v.Name == "DoorsESP" then v:Destroy() end
+    end
+    
+    local function CreateTab(name, targetPage, icon)
+        local TabButton = Instance.new("TextButton")
+        TabButton.Name = targetPage .. "Tab"
+        TabButton.Parent = TabScrolling
+        TabButton.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+        TabButton.Size = UDim2.new(0, 85, 0, 35) -- 📱 Mobil için optimize boyut
+        TabButton.Font = Enum.Font.GothamMedium
+        TabButton.Text = icon .. " " .. name
+        TabButton.TextColor3 = Color3.fromRGB(180, 180, 190)
+        TabButton.TextSize = 11
+        TabButton.TextXAlignment = Enum.TextXAlignment.Center
+        TabButton.TextYAlignment = Enum.TextYAlignment.Center
+        TabButton.BorderSizePixel = 0
+        TabButton.AutoButtonColor = false
+        TabButton:SetAttribute("PageTarget", targetPage)
+        
+        local TabCorner = Instance.new("UICorner")
+        TabCorner.CornerRadius = UDim.new(0, 18) -- 📱 Tam yuvarlak köşeler
+        TabCorner.Parent = TabButton
+        
+        TabButton.MouseButton1Click:Connect(function()
+            SwitchPage(targetPage)
+        end)
+        
+        -- 📱 Dokunmatik geri bildirim
+        TabButton.TouchTap:Connect(function()
+            SwitchPage(targetPage)
+        end)
+    end
+    
+    -- Sayfaları oluştur
+    CreatePage("AutoPlay")
+    CreatePage("Flight")
+    CreatePage("Visuals")
+    CreatePage("Player")
+    CreatePage("Misc")
+    
+    -- Tab'ları oluştur (Mobil için kısaltılmış isimler)
+    CreateTab("Otomasyon", "AutoPlay", "🤖")
+    CreateTab("Uçuş", "Flight", "🪽")
+    CreateTab("Görsel", "Visuals", "👁️")
+    CreateTab("Karakter", "Player", "🏃")
+    CreateTab("Diğer", "Misc", "⚙️")
+    
+    SwitchPage("AutoPlay")
+    
+    -- Settings
+    _G.Settings = {}
+    
+    -- 📱 Mobil uyumlu Toggle butonu (daha büyük ve dokunmatik dostu)
+    local function AddToggle(page, text, setting, default, callback)
+        if _G.Settings[setting] == nil then
+            _G.Settings[setting] = default or false
+        end
+        
+        local ToggleBtn = Instance.new("TextButton")
+        ToggleBtn.Name = setting .. "Toggle"
+        ToggleBtn.Parent = pages[page]
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
+        ToggleBtn.Size = UDim2.new(0.94, 0, 0, 48) -- 📱 Daha büyük mobil buton
+        ToggleBtn.Font = Enum.Font.Gotham
+        ToggleBtn.Text = "  🔴 " .. text
+        ToggleBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+        ToggleBtn.TextSize = 12 -- 📱 Daha büyük font
+        ToggleBtn.TextXAlignment = Enum.TextXAlignment.Left
+        ToggleBtn.TextYAlignment = Enum.TextYAlignment.Center
+        ToggleBtn.BorderSizePixel = 0
+        ToggleBtn.AutoButtonColor = false
+        ToggleBtn.TextTruncate = Enum.TextTruncate.AtEnd
+        
+        local Corner = Instance.new("UICorner")
+        Corner.CornerRadius = UDim.new(0, 10)
+        Corner.Parent = ToggleBtn
+        
+        -- 📱 Büyük toggle göstergesi
+        local Indicator = Instance.new("Frame")
+        Indicator.Parent = ToggleBtn
+        Indicator.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+        Indicator.Size = UDim2.new(0, 50, 0, 26) -- 📱 Daha büyük
+        Indicator.Position = UDim2.new(0.85, 0, 0.23, 0)
+        Indicator.BorderSizePixel = 0
+        
+        local IndicatorCorner = Instance.new("UICorner")
+        IndicatorCorner.CornerRadius = UDim.new(1, 0)
+        IndicatorCorner.Parent = Indicator
+        
+        local IndicatorDot = Instance.new("Frame")
+        IndicatorDot.Parent = Indicator
+        IndicatorDot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        IndicatorDot.Size = UDim2.new(0, 20, 0, 20) -- 📱 Daha büyük dot
+        IndicatorDot.Position = UDim2.new(0.06, 0, 0.12, 0)
+        IndicatorDot.BorderSizePixel = 0
+        
+        local DotCorner = Instance.new("UICorner")
+        DotCorner.CornerRadius = UDim.new(1, 0)
+        DotCorner.Parent = IndicatorDot
+        
+        local function UpdateVisual(state)
+            if state then
+                ToggleBtn.Text = "  🟢 " .. text
+                ToggleBtn.BackgroundColor3 = Color3.fromRGB(80, 0, 180)
+                Indicator.BackgroundColor3 = Color3.fromRGB(120, 0, 255)
+                TweenService:Create(IndicatorDot, TweenInfo.new(0.2), {Position = UDim2.new(0.48, 0, 0.12, 0)}):Play()
+            else
+                ToggleBtn.Text = "  🔴 " .. text
+                ToggleBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
+                Indicator.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+                TweenService:Create(IndicatorDot, TweenInfo.new(0.2), {Position = UDim2.new(0.06, 0, 0.12, 0)}):Play()
+            end
+        end
+        
+        if _G.Settings[setting] then
+            UpdateVisual(true)
+        end
+        
+        ToggleBtn.MouseButton1Click:Connect(function()
+            _G.Settings[setting] = not _G.Settings[setting]
+            UpdateVisual(_G.Settings[setting])
+            if callback then callback(_G.Settings[setting]) end
+        end)
+        
+        -- 📱 Dokunmatik geri bildirim
+        ToggleBtn.TouchTap:Connect(function()
+            _G.Settings[setting] = not _G.Settings[setting]
+            UpdateVisual(_G.Settings[setting])
+            if callback then callback(_G.Settings[setting]) end
+        end)
+    end
+    
+    -- 📱 Mobil uyumlu Slider
+    local function AddSlider(page, text, setting, min, max, default, callback)
+        if _G.Settings[setting] == nil then
+            _G.Settings[setting] = default or min
+        end
+        
+        local SliderFrame = Instance.new("Frame")
+        SliderFrame.Parent = pages[page]
+        SliderFrame.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
+        SliderFrame.Size = UDim2.new(0.94, 0, 0, 60) -- 📱 Daha büyük
+        SliderFrame.BorderSizePixel = 0
+        
+        local SliderCorner = Instance.new("UICorner")
+        SliderCorner.CornerRadius = UDim.new(0, 10)
+        SliderCorner.Parent = SliderFrame
+        
+        local SliderLabel = Instance.new("TextLabel")
+        SliderLabel.Parent = SliderFrame
+        SliderLabel.BackgroundTransparency = 1
+        SliderLabel.Size = UDim2.new(1, 0, 0, 22)
+        SliderLabel.Position = UDim2.new(0, 0, 0.05, 0)
+        SliderLabel.Font = Enum.Font.Gotham
+        SliderLabel.Text = text .. ": " .. tostring(_G.Settings[setting])
+        SliderLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+        SliderLabel.TextSize = 12
+        SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+        
+        local SliderBar = Instance.new("TextButton")
+        SliderBar.Parent = SliderFrame
+        SliderBar.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+        SliderBar.Size = UDim2.new(0.9, 0, 0, 8) -- 📱 Daha kalın
+        SliderBar.Position = UDim2.new(0.05, 0, 0.6, 0)
+        SliderBar.BorderSizePixel = 0
+        SliderBar.Text = ""
+        SliderBar.AutoButtonColor = false
+        
+        local SliderBarCorner = Instance.new("UICorner")
+        SliderBarCorner.CornerRadius = UDim.new(1, 0)
+        SliderBarCorner.Parent = SliderBar
+        
+        local SliderFill = Instance.new("Frame")
+        SliderFill.Parent = SliderBar
+        SliderFill.BackgroundColor3 = Color3.fromRGB(120, 0, 255)
+        SliderFill.Size = UDim2.new((_G.Settings[setting] - min) / (max - min), 0, 1, 0)
+        SliderFill.BorderSizePixel = 0
+        
+        local SliderFillCorner = Instance.new("UICorner")
+        SliderFillCorner.CornerRadius = UDim.new(1, 0)
+        SliderFillCorner.Parent = SliderFill
+        
+        local SliderDot = Instance.new("TextButton")
+        SliderDot.Parent = SliderBar
+        SliderDot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        SliderDot.Size = UDim2.new(0, 22, 0, 22) -- 📱 Daha büyük dot
+        SliderDot.Position = UDim2.new((_G.Settings[setting] - min) / (max - min) - 0.04, 0, -0.9, 0)
+        SliderDot.BorderSizePixel = 0
+        SliderDot.Text = ""
+        SliderDot.AutoButtonColor = false
+        
+        local SliderDotCorner = Instance.new("UICorner")
+        SliderDotCorner.CornerRadius = UDim.new(1, 0)
+        SliderDotCorner.Parent = SliderDot
+        
+        -- 📱 Dokunmatik slider güncelleme
+        local function UpdateSlider(touchPos)
+            local barSize = SliderBar.AbsoluteSize.X
+            local relativePos = math.clamp((touchPos.X - SliderBar.AbsolutePosition.X) / barSize, 0, 1)
+            local value = math.floor(min + (max - min) * relativePos)
+            
+            _G.Settings[setting] = value
+            SliderLabel.Text = text .. ": " .. tostring(value)
+            SliderFill.Size = UDim2.new(relativePos, 0, 1, 0)
+            SliderDot.Position = UDim2.new(relativePos - 0.04, 0, -0.9, 0)
+            
+            if callback then callback(value) end
+        end
+        
+        -- 📱 Touch events
+        SliderBar.TouchTap:Connect(function(input)
+            UpdateSlider(input.Position)
+        end)
+        
+        SliderDot.TouchPan:Connect(function(input)
+            UpdateSlider(input.Position)
+        end)
+        
+        -- PC mouse desteği
+        if isPC then
+            SliderBar.MouseButton1Down:Connect(function()
+                UpdateSlider({Position = Vector2.new(mouse.X, mouse.Y), X = mouse.X})
+            end)
+            
+            SliderDot.MouseButton1Down:Connect(function()
+                local connection
+                connection = RunService.RenderStepped:Connect(function()
+                    if not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                        connection:Disconnect()
+                        return
+                    end
+                    UpdateSlider({Position = Vector2.new(mouse.X, mouse.Y), X = mouse.X})
+                end)
+            end)
         end
     end
+    
+    -- 📱 Mobil buton (daha büyük)
+    local function AddButton(page, text, callback)
+        local Button = Instance.new("TextButton")
+        Button.Parent = pages[page]
+        Button.BackgroundColor3 = Color3.fromRGB(120, 0, 255)
+        Button.Size = UDim2.new(0.94, 0, 0, 44) -- 📱 Daha büyük
+        Button.Font = Enum.Font.GothamMedium
+        Button.Text = "⚡ " .. text
+        Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Button.TextSize = 12
+        Button.TextXAlignment = Enum.TextXAlignment.Center
+        Button.TextYAlignment = Enum.TextYAlignment.Center
+        Button.BorderSizePixel = 0
+        
+        local ButtonCorner = Instance.new("UICorner")
+        ButtonCorner.CornerRadius = UDim.new(0, 10)
+        ButtonCorner.Parent = Button
+        
+        Button.MouseButton1Click:Connect(function()
+            Button.BackgroundColor3 = Color3.fromRGB(140, 20, 255)
+            task.wait(0.1)
+            Button.BackgroundColor3 = Color3.fromRGB(120, 0, 255)
+            callback()
+        end)
+        
+        -- 📱 Dokunmatik
+        Button.TouchTap:Connect(function()
+            Button.BackgroundColor3 = Color3.fromRGB(140, 20, 255)
+            task.wait(0.1)
+            Button.BackgroundColor3 = Color3.fromRGB(120, 0, 255)
+            callback()
+        end)
+    end
+    
+    local function AddLabel(page, text)
+        local Label = Instance.new("TextLabel")
+        Label.Parent = pages[page]
+        Label.BackgroundTransparency = 1
+        Label.Size = UDim2.new(0.94, 0, 0, 28)
+        Label.Font = Enum.Font.GothamMedium
+        Label.Text = text
+        Label.TextColor3 = Color3.fromRGB(150, 150, 160)
+        Label.TextSize = 12
+        Label.TextXAlignment = Enum.TextXAlignment.Left
+        Label.TextYAlignment = Enum.TextYAlignment.Center
+        Label.TextWrapped = true
+    end
+    
+    -- 📱 Otomasyon Seçenekleri
+    AddLabel("AutoPlay", "🤖 ANA OTOMASYON")
+    AddToggle("AutoPlay", "Akıllı Otomatik Kapı ve İlerleme", "AutoPlayMaster", true)
+    AddToggle("AutoPlay", "Yaratık Kaçış Sistemi (Dolap)", "EntityAvoid", true)
+    AddToggle("AutoPlay", "Akıllı Anahtar Toplama", "AutoKeyCollect", true)
+    AddToggle("AutoPlay", "Anahtarlı Kapı Otomatik Açma", "AutoKeyDoor", true)
+    AddToggle("AutoPlay", "Altın ve Para Toplayıcı", "AutoGold", true)
+    AddToggle("AutoPlay", "Kütüphane Şifre ve Kitap Çözücü", "LibrarySolver", true)
+    AddButton("AutoPlay", "Haritayı Yeniden Tara", function()
+        _G.RefreshMap = true
+    end)
+    
+    -- 📱 Uçuş Seçenekleri
+    AddLabel("Flight", "🪽 UÇUŞ VE SÜZÜLME AYARLARI")
+    AddToggle("Flight", "NoClip Uçuş Modu", "FlightMode", true)
+    AddToggle("Flight", "Yavaşça Süzülerek Git", "GlideMode", true)
+    AddSlider("Flight", "Uçuş Hızı", "FlightSpeed", 10, 100, 30)
+    AddSlider("Flight", "Süzülme Yumuşaklığı", "GlideSmoothness", 1, 20, 8)
+    AddSlider("Flight", "Hedefe Uzaklık (Stud)", "TargetDistance", 3, 15, 6)
+    AddToggle("Flight", "Partikül Efekti", "FlightParticles", true)
+    
+    -- 📱 Görsel Seçenekleri
+    AddLabel("Visuals", "👁️ GÖRSEL AYARLAR")
+    AddToggle("Visuals", "Fullbright (Karanlığı Kaldır)", "Fullbright", false)
+    AddToggle("Visuals", "Canavar ve Varlık ESP", "EntityESP", true)
+    AddToggle("Visuals", "Kapı ve Nesne ESP", "DoorESP", true)
+    AddToggle("Visuals", "Oyuncu ESP (Multiplayer)", "PlayerESP", false)
+    AddToggle("Visuals", "Chams (X-Ray Görüş)", "Chams", false)
+    
+    -- 📱 Karakter Seçenekleri
+    AddLabel("Player", "🏃 KARAKTER AYARLARI")
+    AddToggle("Player", "Hızlı Koşma (WalkSpeed 22)", "SpeedBoost", true)
+    AddToggle("Player", "Yüksek Zıplama", "HighJump", false)
+    AddToggle("Player", "Tanrı Modu (Anti-Damage)", "GodMode", false)
+    
+    -- 📱 Diğer
+    AddLabel("Misc", "⚙️ DİĞER AYARLAR")
+    AddToggle("Misc", "Otomatik Yeniden Doğma", "AutoRespawn", true)
+    AddToggle("Misc", "Sohbet Logları", "ChatLogs", false)
+    AddButton("Misc", "Sunucudan Ayrıl", function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId)
+    end)
+    AddButton("Misc", "Script'i Kapat", function()
+        ScreenGui:Destroy()
+        MobileControls:Destroy()
+        SafeDestroy(ESPContainer)
+        _G.Settings.FlightMode = false
+        _G.Settings.Noclip = false
+    end)
 end)
 
--- AKILLI OTO-PLAY & YARATIK ALGILAMA SİSTEMİ (Dolaba Gir / Çık / Kapıya Git)
+-- ==========================================================
+-- 2. ADIM: UÇUŞ VE SÜZÜLME SİSTEMİ (Mobil optimize)
+-- ==========================================================
+
+local flightConnection
+local bodyVelocity
+local bodyGyro
+local particleEmitter
+
+local function CreateFlightParticles(character)
+    if not character then return end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
+    
+    local attachment = Instance.new("Attachment")
+    attachment.Parent = rootPart
+    attachment.Position = Vector3.new(0, -2, 0)
+    
+    local particle = Instance.new("ParticleEmitter")
+    particle.Parent = attachment
+    particle.Texture = "rbxassetid://12805312561"
+    particle.Rate = 50
+    particle.Lifetime = NumberRange.new(0.3, 0.8)
+    particle.Speed = NumberRange.new(1, 3)
+    particle.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.2),
+        NumberSequenceKeypoint.new(1, 0)
+    })
+    particle.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(150, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 0, 200))
+    })
+    particle.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0),
+        NumberSequenceKeypoint.new(1, 1)
+    })
+    particle.SpreadAngle = Vector2.new(10, 10)
+    particle.Enabled = _G.Settings.FlightParticles or false
+    
+    return particle
+end
+
+local function StartFlight()
+    if flightConnection then
+        flightConnection:Disconnect()
+    end
+    
+    flightConnection = RunService.RenderStepped:Connect(function()
+        local character = LocalPlayer.Character
+        if not character then return end
+        
+        local humanoid = character:FindFirstChild("Humanoid")
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if not humanoid or not rootPart then return end
+        
+        humanoid.PlatformStand = true
+        
+        if not bodyVelocity or not bodyVelocity.Parent then
+            bodyVelocity = Instance.new("BodyVelocity")
+            bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            bodyVelocity.Parent = rootPart
+        end
+        
+        if not bodyGyro or not bodyGyro.Parent then
+            bodyGyro = Instance.new("BodyGyro")
+            bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+            bodyGyro.CFrame = rootPart.CFrame
+            bodyGyro.Parent = rootPart
+        end
+        
+        if _G.Settings.FlightParticles then
+            if not particleEmitter or not particleEmitter.Parent then
+                particleEmitter = CreateFlightParticles(character)
+            end
+        else
+            if particleEmitter then
+                particleEmitter:Destroy()
+                particleEmitter = nil
+            end
+        end
+    end)
+end
+
+local function StopFlight()
+    if flightConnection then
+        flightConnection:Disconnect()
+        flightConnection = nil
+    end
+    
+    if bodyVelocity then
+        bodyVelocity:Destroy()
+        bodyVelocity = nil
+    end
+    
+    if bodyGyro then
+        bodyGyro:Destroy()
+        bodyGyro = nil
+    end
+    
+    if particleEmitter then
+        particleEmitter:Destroy()
+        particleEmitter = nil
+    end
+    
+    local character = LocalPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+    end
+end
+
+-- Süzülerek hedefe gitme fonksiyonu
+local function GlideToTarget(targetPosition, targetPart)
+    local character = LocalPlayer.Character
+    if not character then return false end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return false end
+    
+    local speed = _G.Settings.FlightSpeed or 30
+    local smoothness = _G.Settings.GlideSmoothness or 8
+    local targetDistance = _G.Settings.TargetDistance or 6
+    
+    local flightComplete = false
+    local flightTime = 0
+    local maxFlightTime = 5
+    
+    local glideConnection
+    glideConnection = RunService.RenderStepped:Connect(function(deltaTime)
+        flightTime = flightTime + deltaTime
+        
+        if flightTime > maxFlightTime or flightComplete then
+            glideConnection:Disconnect()
+            return
+        end
+        
+        local currentPos = rootPart.Position
+        local distance = (targetPosition - currentPos).Magnitude
+        
+        if distance <= targetDistance then
+            flightComplete = true
+            
+            if targetPart then
+                firetouchinterest(character, targetPart.Parent or targetPart, 0)
+                task.wait(0.1)
+                firetouchinterest(character, targetPart.Parent or targetPart, 1)
+                
+                local prompt = targetPart.Parent and targetPart.Parent:FindFirstChildWhichIsA("ProximityPrompt")
+                if prompt then
+                    fireproximityprompt(targetPart.Parent)
+                end
+            end
+            
+            glideConnection:Disconnect()
+            return
+        end
+        
+        local direction = (targetPosition - currentPos).unit
+        local smoothFactor = math.min(1, distance / smoothness)
+        local currentSpeed = speed * smoothFactor
+        local waveEffect = math.sin(flightTime * 3) * 2 * smoothFactor
+        local targetHeight = targetPosition.Y + 2 + waveEffect
+        
+        local newPosition = currentPos + direction * currentSpeed * deltaTime
+        newPosition = Vector3.new(
+            newPosition.X,
+            currentPos.Y + (targetHeight - currentPos.Y) * deltaTime * 3,
+            newPosition.Z
+        )
+        
+        if bodyVelocity then
+            bodyVelocity.Velocity = (newPosition - currentPos) / deltaTime
+        end
+        
+        if bodyGyro then
+            local lookAt = CFrame.lookAt(currentPos, targetPosition)
+            bodyGyro.CFrame = lookAt
+        end
+        
+        rootPart.CFrame = CFrame.lookAt(currentPos, Vector3.new(targetPosition.X, currentPos.Y, targetPosition.Z))
+    end)
+    
+    return true
+end
+
+-- Anahtar arama ve toplama sistemi
+local function FindAndCollectKey()
+    local character = LocalPlayer.Character
+    if not character then return nil end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return nil end
+    
+    local nearestKey = nil
+    local nearestDistance = 200
+    
+    for _, item in pairs(Workspace:GetDescendants()) do
+        if item:IsA("Tool") or item:IsA("Model") then
+            local name = item.Name:lower()
+            if name:find("key") and not name:find("keyhole") and not name:find("keycardreader") then
+                local handle = item:FindFirstChild("Handle") or item:FindFirstChildWhichIsA("BasePart")
+                if handle then
+                    local distance = (rootPart.Position - handle.Position).Magnitude
+                    if distance < nearestDistance then
+                        nearestDistance = distance
+                        nearestKey = {item = item, part = handle, position = handle.Position}
+                    end
+                end
+            end
+        end
+    end
+    
+    return nearestKey
+end
+
+-- Anahtarlı kapı bulma ve açma
+local function FindAndOpenLockedDoor(hasKey)
+    local character = LocalPlayer.Character
+    if not character then return false end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return false end
+    
+    local nearestLockedDoor = nil
+    local nearestDistance = 100
+    
+    for _, door in pairs(Workspace:GetDescendants()) do
+        if door:IsA("Model") then
+            local name = door.Name:lower()
+            if name:find("door") and (name:find("lock") or name:find("key")) then
+                local doorPart = door:FindFirstChild("Door") or door:FindFirstChildWhichIsA("BasePart")
+                if doorPart then
+                    local lock = door:FindFirstChild("Lock") or door:FindFirstChildWhichIsA("ProximityPrompt")
+                    if lock then
+                        local distance = (rootPart.Position - doorPart.Position).Magnitude
+                        if distance < nearestDistance then
+                            nearestDistance = distance
+                            nearestLockedDoor = {door = door, part = doorPart, lock = lock, position = doorPart.Position}
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    if nearestLockedDoor and hasKey then
+        GlideToTarget(nearestLockedDoor.position, nearestLockedDoor.lock or nearestLockedDoor.part)
+        
+        task.wait(0.5)
+        if nearestLockedDoor.lock then
+            fireproximityprompt(nearestLockedDoor.door)
+        end
+        
+        fireclickdetector(nearestLockedDoor.door)
+        return true
+    end
+    
+    return false
+end
+
+-- ==========================================================
+-- 3. ADIM: AKILLI OTO-PLAY SİSTEMİ
+-- ==========================================================
+
 task.spawn(function()
     local currentlyHiding = false
+    local lastHidingCheck = 0
+    local HIDING_COOLDOWN = 2
+    local hasKey = false
+    local keyCheckTimer = 0
     
     while true do
-        task.wait(0.2)
+        task.wait(0.1)
+        
+        if _G.Settings and _G.Settings.FlightMode then
+            if not flightConnection then
+                StartFlight()
+            end
+        else
+            if flightConnection then
+                StopFlight()
+            end
+        end
+        
         if _G.Settings and _G.Settings.AutoPlayMaster then
             pcall(function()
                 local char = LocalPlayer.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
-
-                -- 1. YARATIK TESPİTİ (Rush, Ambush vb.)
-                local detectedDanger = nil
-                for _, v in pairs(Workspace:GetChildren()) do
-                    if v.Name == "RushMoving" or v.Name == "AmbushMoving" then
-                        local vPart = v:FindFirstChild("Root") or v:FindFirstChildWhichIsA("BasePart")
-                        if vPart and (hrp.Position - vPart.Position).Magnitude < 140 then
-                            detectedDanger = v
+                
+                if _G.RefreshMap then
+                    _G.RefreshMap = false
+                    currentlyHiding = false
+                    hasKey = false
+                end
+                
+                keyCheckTimer = keyCheckTimer + 0.1
+                if keyCheckTimer >= 2 then
+                    keyCheckTimer = 0
+                    hasKey = false
+                    if char then
+                        for _, child in pairs(char:GetChildren()) do
+                            if child:IsA("Tool") and child.Name:lower():find("key") then
+                                hasKey = true
+                                break
+                            end
                         end
                     end
                 end
-
-                -- 2. TEHLİKE VARSA DOLABA GİR
-                if detectedDanger then
-                    currentlyHiding = true
-                    for _, room in pairs(Workspace.CurrentRooms:GetChildren()) do
-                        local assets = room:FindFirstChild("Assets")
-                        if assets then
-                            for _, obj in pairs(assets:GetChildren()) do
-                                if obj.Name:lower():find("wardrobe") or obj.Name:lower():find("closet") then
-                                    local doorPart = obj:FindFirstChild("Door") or obj:FindFirstChildWhichIsA("BasePart")
-                                    if doorPart and (hrp.Position - doorPart.Position).Magnitude < 60 then
-                                        hrp.CFrame = doorPart.CFrame
+                
+                -- Yaratık tespiti
+                local detectedDanger = nil
+                local closestDistance = 150
+                
+                for _, v in pairs(Workspace:GetChildren()) do
+                    if v:IsA("Model") or v:IsA("Part") then
+                        local name = v.Name
+                        if name:find("Rush") or name:find("Ambush") or name:find("Figure") or name:find("Screech") then
+                            local vPart = v:FindFirstChild("Root") or v:FindFirstChild("Base") or v:FindFirstChildWhichIsA("BasePart")
+                            if vPart then
+                                local distance = (hrp.Position - vPart.Position).Magnitude
+                                if distance < closestDistance then
+                                    closestDistance = distance
+                                    detectedDanger = v
+                                end
+                            end
+                        end
+                    end
+                end
+                
+                if detectedDanger and _G.Settings.EntityAvoid then
+                    if not currentlyHiding then
+                        currentlyHiding = true
+                        lastHidingCheck = tick()
+                        
+                        local bestCloset = nil
+                        local bestDistance = 60
+                        
+                        for _, room in pairs(Workspace:GetDescendants()) do
+                            if room:IsA("Model") then
+                                for _, obj in pairs(room:GetDescendants()) do
+                                    local objName = obj.Name:lower()
+                                    if objName:find("wardrobe") or objName:find("closet") or objName:find("hiding") then
+                                        local doorPart = obj:FindFirstChild("Door") or obj:FindFirstChild("Entrance") or obj:FindFirstChildWhichIsA("BasePart")
+                                        if doorPart then
+                                            local dist = (hrp.Position - doorPart.Position).Magnitude
+                                            if dist < bestDistance then
+                                                bestDistance = dist
+                                                bestCloset = doorPart
+                                            end
+                                        end
                                     end
                                 end
                             end
                         end
+                        
+                        if bestCloset then
+                            if _G.Settings.FlightMode then
+                                GlideToTarget(bestCloset.Position, bestCloset)
+                            else
+                                hrp.CFrame = bestCloset.CFrame * CFrame.new(0, 0, -2)
+                            end
+                            fireproximityprompt(bestCloset.Parent)
+                        end
                     end
                 else
-                    -- 3. TEHLİKE GEÇTİYSE DOLAPTAN ÇIK VE KAPILARA İLERLE
-                    if currentlyHiding then
+                    if currentlyHiding and (tick() - lastHidingCheck) > HIDING_COOLDOWN then
                         currentlyHiding = false
-                        hrp.CFrame = hrp.CFrame + Vector3.new(3, 0, 3)
-                        task.wait(0.6)
+                        hrp.CFrame = hrp.CFrame + hrp.CFrame.LookVector * 5
+                        task.wait(0.3)
                     end
-
-                    -- Kapı açma ve ilerleme
-                    if Workspace:FindFirstChild("CurrentRooms") then
-                        for _, room in pairs(Workspace.CurrentRooms:GetChildren()) do
-                            local door = room:FindFirstChild("Door")
-                            if door then
-                                local knob = door:FindFirstChild("Knob")
-                                if knob and (hrp.Position - knob.Position).Magnitude < 50 then
-                                    hrp.CFrame = knob.CFrame + Vector3.new(0, 0, 2)
+                    
+                    -- Anahtar toplama
+                    if _G.Settings.AutoKeyCollect and not currentlyHiding then
+                        local keyData = FindAndCollectKey()
+                        if keyData then
+                            if _G.Settings.FlightMode then
+                                GlideToTarget(keyData.position, keyData.part)
+                            else
+                                hrp.CFrame = keyData.part.CFrame
+                            end
+                            fireproximityprompt(keyData.item)
+                            firetouchinterest(char, keyData.item, 0)
+                            task.wait(0.2)
+                            firetouchinterest(char, keyData.item, 1)
+                            hasKey = true
+                        end
+                    end
+                    
+                    -- Anahtarlı kapı
+                    if _G.Settings.AutoKeyDoor and hasKey and not currentlyHiding then
+                        local doorOpened = FindAndOpenLockedDoor(hasKey)
+                        if doorOpened then
+                            hasKey = false
+                            task.wait(1)
+                        end
+                    end
+                    
+                    -- Normal kapı
+                    if not currentlyHiding and not hasKey then
+                        local nearestDoor = nil
+                        local nearestDoorDistance = 80
+                        
+                        for _, door in pairs(Workspace:GetDescendants()) do
+                            if door.Name == "Door" or door.Name == "DoorWood" or door.Name == "Gate" then
+                                local knob = door:FindFirstChild("Knob") or door:FindFirstChild("Handle")
+                                local doorPart = door:FindFirstChild("Door") or door:FindFirstChildWhichIsA("BasePart")
+                                local target = knob or doorPart
+                                
+                                if target and target:IsA("BasePart") then
+                                    local dist = (hrp.Position - target.Position).Magnitude
+                                    if dist < nearestDoorDistance then
+                                        nearestDoorDistance = dist
+                                        nearestDoor = {door = door, target = target}
+                                    end
                                 end
                             end
                         end
+                        
+                        if nearestDoor then
+                            if _G.Settings.FlightMode then
+                                GlideToTarget(nearestDoor.target.Position, nearestDoor.target)
+                            else
+                                local targetPos = nearestDoor.target.Position
+                                local moveDirection = (targetPos - hrp.Position).unit
+                                hrp.CFrame = CFrame.new(targetPos - moveDirection * 3)
+                            end
+                            
+                            task.wait(0.2)
+                            local doorModel = nearestDoor.door
+                            if doorModel:IsA("Model") then
+                                fireclickdetector(doorModel)
+                                fireproximityprompt(doorModel)
+                            end
+                        end
                     end
-
-                    -- Anahtar toplama
-                    if _G.Settings.AutoKey then
-                        for _, room in pairs(Workspace.CurrentRooms:GetChildren()) do
-                            local assets = room:FindFirstChild("Assets")
-                            if assets then
-                                for _, item in pairs(assets:GetChildren()) do
-                                    if item.Name == "Key" or item.Name:lower():find("key") then
-                                        local hitbox = item:FindFirstChild("Hitbox") or item:FindFirstChildWhichIsA("BasePart")
-                                        if hitbox and (hrp.Position - hitbox.Position).Magnitude < 40 then
+                    
+                    -- Altın toplama
+                    if _G.Settings.AutoGold and not currentlyHiding then
+                        for _, item in pairs(Workspace:GetDescendants()) do
+                            if item:IsA("Tool") or item:IsA("Model") then
+                                if item.Name:lower():find("gold") or item.Name:lower():find("coin") then
+                                    local hitbox = item:FindFirstChild("Hitbox") or item:FindFirstChild("Handle") or item:FindFirstChildWhichIsA("BasePart")
+                                    if hitbox and (hrp.Position - hitbox.Position).Magnitude < 50 then
+                                        if _G.Settings.FlightMode then
+                                            GlideToTarget(hitbox.Position, hitbox)
+                                        else
                                             hrp.CFrame = hitbox.CFrame
                                         end
+                                        fireproximityprompt(item)
+                                        firetouchinterest(char, item, 0)
+                                        firetouchinterest(char, item, 1)
                                     end
                                 end
                             end
@@ -392,21 +1124,235 @@ task.spawn(function()
     end
 end)
 
--- Kütüphane Bölümü Şifre ve Kitap Çözücü
-RunService.Heartbeat:Connect(function()
-    if _G.Settings and _G.Settings.LibrarySolver then
+-- ==========================================================
+-- 4. ADIM: DİĞER MOTORLAR
+-- ==========================================================
+
+-- Fullbright
+local fullbrightConn
+local function ToggleFullbright(state)
+    if state then
+        if fullbrightConn then fullbrightConn:Disconnect() end
+        fullbrightConn = RunService.RenderStepped:Connect(function()
+            Lighting.Brightness = 2
+            Lighting.ClockTime = 14
+            Lighting.FogEnd = 100000
+            Lighting.GlobalShadows = false
+            Lighting.Ambient = Color3.fromRGB(128, 128, 128)
+            Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+        end)
+    else
+        if fullbrightConn then
+            fullbrightConn:Disconnect()
+            fullbrightConn = nil
+        end
+        Lighting.Brightness = 1
+        Lighting.ClockTime = 0
+        Lighting.FogEnd = 500
+        Lighting.GlobalShadows = true
+    end
+end
+
+-- Hız
+local speedConn
+local function ToggleSpeed(state)
+    if state then
+        if speedConn then speedConn:Disconnect() end
+        speedConn = RunService.RenderStepped:Connect(function()
+            local char = LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChild("Humanoid")
+                if hum then hum.WalkSpeed = 22 end
+            end
+        end)
+    else
+        if speedConn then
+            speedConn:Disconnect()
+            speedConn = nil
+        end
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then hum.WalkSpeed = 16 end
+        end
+    end
+end
+
+-- Entity ESP
+local function ToggleEntityESP(state)
+    if state then
+        task.spawn(function()
+            while _G.Settings.EntityESP do
+                pcall(function()
+                    for _, v in pairs(Workspace:GetDescendants()) do
+                        if v:IsA("Model") or v:IsA("Part") then
+                            local isEntity = false
+                            local name = v.Name
+                            if name:find("Rush") or name:find("Ambush") or name:find("Figure") or 
+                               name:find("Screech") or name:find("Seek") or name:find("Halt") or
+                               name:find("Jack") or name:find("Shadow") or name:find("Gloom") then
+                                isEntity = true
+                            end
+                            if isEntity and not v:FindFirstChild("DoorsESP") then
+                                local hl = Instance.new("Highlight")
+                                hl.Name = "DoorsESP"
+                                hl.FillColor = Color3.fromRGB(255, 50, 50)
+                                hl.OutlineColor = Color3.fromRGB(255, 100, 100)
+                                hl.FillTransparency = 0.3
+                                hl.Parent = v
+                            end
+                        end
+                    end
+                end)
+                task.wait(1)
+            end
+        end)
+    else
         pcall(function()
             for _, v in pairs(Workspace:GetDescendants()) do
-                if v.Name == "Book" or v.Name == "Paper" then
-                    if not v:FindFirstChild("LibESP") then
-                        local hl = Instance.new("Highlight")
-                        hl.Name = "LibESP"
-                        hl.FillColor = Color3.fromRGB(0, 255, 255)
-                        hl.Parent = v
-                    end
+                if v.Name == "DoorsESP" then
+                    v:Destroy()
                 end
             end
         end)
     end
+end
+
+-- Noclip
+local noclipConn
+local function ToggleNoclip(state)
+    if state then
+        if noclipConn then noclipConn:Disconnect() end
+        noclipConn = RunService.Stepped:Connect(function()
+            if LocalPlayer.Character then
+                for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+                    if v:IsA("BasePart") and v.CanCollide then
+                        v.CanCollide = false
+                    end
+                end
+            end
+        end)
+    else
+        if noclipConn then
+            noclipConn:Disconnect()
+            noclipConn = nil
+        end
+    end
+end
+
+-- Yüksek zıplama
+local jumpConn
+local function ToggleHighJump(state)
+    if state then
+        if jumpConn then jumpConn:Disconnect() end
+        jumpConn = UserInputService.JumpRequest:Connect(function()
+            local char = LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChild("Humanoid")
+                if hum then hum.JumpPower = 100 end
+            end
+        end)
+    else
+        if jumpConn then
+            jumpConn:Disconnect()
+            jumpConn = nil
+        end
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then hum.JumpPower = 50 end
+        end
+    end
+end
+
+-- Tanrı modu
+local godModeConn
+local function ToggleGodMode(state)
+    if state then
+        if godModeConn then godModeConn:Disconnect() end
+        godModeConn = RunService.RenderStepped:Connect(function()
+            local char = LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChild("Humanoid")
+                if hum then
+                    hum.Health = hum.MaxHealth
+                    hum.MaxHealth = math.huge
+                end
+            end
+        end)
+    else
+        if godModeConn then
+            godModeConn:Disconnect()
+            godModeConn = nil
+        end
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum and hum.Health then
+                hum.MaxHealth = 100
+            end
+        end
+    end
+end
+
+-- Kütüphane çözücü
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if _G.Settings and _G.Settings.LibrarySolver then
+            pcall(function()
+                for _, v in pairs(Workspace:GetDescendants()) do
+                    if v:IsA("Model") or v:IsA("Part") then
+                        local name = v.Name:lower()
+                        if name:find("book") or name:find("paper") or name:find("puzzle") then
+                            if not v:FindFirstChild("LibESP") then
+                                local hl = Instance.new("Highlight")
+                                hl.Name = "LibESP"
+                                hl.FillColor = Color3.fromRGB(0, 255, 255)
+                                hl.OutlineColor = Color3.fromRGB(0, 200, 255)
+                                hl.FillTransparency = 0.5
+                                hl.Parent = v
+                            end
+                            local proximity = v:FindFirstChildWhichIsA("ProximityPrompt")
+                            if proximity then
+                                fireproximityprompt(v)
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
 end)
 
+-- Ayarları dinle
+task.spawn(function()
+    RunService.Heartbeat:Connect(function()
+        if _G.Settings.Fullbright then ToggleFullbright(true) else ToggleFullbright(false) end
+        if _G.Settings.SpeedBoost then ToggleSpeed(true) else ToggleSpeed(false) end
+        if _G.Settings.EntityESP then ToggleEntityESP(true) else ToggleEntityESP(false) end
+        if _G.Settings.Noclip then ToggleNoclip(true) else ToggleNoclip(false) end
+        if _G.Settings.HighJump then ToggleHighJump(true) else ToggleHighJump(false) end
+        if _G.Settings.GodMode then ToggleGodMode(true) else ToggleGodMode(false) end
+    end)
+end)
+
+-- Bildirim
+local function ShowNotification(text, duration)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "📱 Doors Mobile v5.0",
+            Text = text,
+            Duration = duration or 2,
+        })
+    end)
+end
+
+task.delay(2, function()
+    ShowNotification("📱 Mobil versiyon başlatıldı! Dokunmatik kontroller aktif!", 3)
+end)
+
+print("📱 Doors Smart Hub v5.0 - MOBILE EDITION başlatıldı!")
+print("👆 Dokunmatik kontroller, büyük butonlar ve mobil uyumlu arayüz!")
+print("📱 SafeArea uyumlu, tam ekran mobil deneyim!")
+print("🛡️ Anti-Ban koruması aktif")
