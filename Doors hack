@@ -100,25 +100,24 @@ _G.FakeDoorDatabase = {
 }
 
 -- ==========================================================
--- RAYFIELD UI SETUP
+-- RAYFIELD UI SETUP (GÜNCELLEŞTİRİLDİ)
 -- ==========================================================
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/UI-Libraries/Rayfield/main/source'))()
 
 local Window = Rayfield:CreateWindow({
     Name = "🚪 DOORS MASTER AI v12.0",
     LoadingTitle = "Profesyonel AI Bot Yükleniyor...",
     LoadingSubtitle = "Advanced Detection & Solving Systems",
     ConfigurationSaving = { Enabled = true, FolderName = "DoorsAI", FileName = "config.json" },
-    KeySystem = false,
-    Transparency = 0.1
+    KeySystem = false
 })
 
-local MainTab = Window:CreateTab("🤖 Ana Kontrol", 4483362458)
-local AITab = Window:CreateTab("🧠 Yapay Zeka", 4483362458)
-local DetectionTab = Window:CreateTab("🎯 Algılama", 4483362458)
-local LibraryTab = Window:CreateTab("📚 Kütüphane", 4483362458)
-local VisualsTab = Window:CreateTab("👁️ Görseller", 4483362458)
-local StatsTab = Window:CreateTab("📊 İstatistikler", 4483362458)
+local MainTab = Window:CreateTab("🤖 Ana Kontrol")
+local AITab = Window:CreateTab("🧠 Yapay Zeka")
+local DetectionTab = Window:CreateTab("🎯 Algılama")
+local LibraryTab = Window:CreateTab("📚 Kütüphane")
+local VisualsTab = Window:CreateTab("👁️ Görseller")
+local StatsTab = Window:CreateTab("📊 İstatistikler")
 
 -- ==========================================================
 -- LOGGING SYSTEM
@@ -196,7 +195,58 @@ local function Lerp(a, b, t)
 end
 
 -- ==========================================================
--- FAKE DOOR DETECTION SYSTEM (KRİTİK!)
+-- SMOOTH MOVEMENT SYSTEM
+-- ==========================================================
+local function WalkToTarget(targetPos, timeout, stoppingDistance)
+    timeout = timeout or 10
+    stoppingDistance = stoppingDistance or 3
+    
+    local hrp = GetHumanoidRootPart()
+    local humanoid = GetHumanoid()
+    
+    if not hrp or not humanoid then return false end
+    
+    humanoid.WalkSpeed = _G.Settings.WalkSpeed
+    humanoid:MoveTo(targetPos)
+    
+    local startTime = tick()
+    while Distance(hrp.Position, targetPos) > stoppingDistance do
+        if not _G.Settings.AIEnabled or tick() - startTime > timeout or not hrp or not hrp.Parent then
+            humanoid.WalkSpeed = 16
+            return false
+        end
+        task.wait(0.05)
+    end
+    
+    humanoid.WalkSpeed = 16
+    return true
+end
+
+local function FlyToTarget(targetPos, timeout, altitude)
+    altitude = altitude or _G.Settings.FlyHeight
+    timeout = timeout or 10
+    
+    local hrp = GetHumanoidRootPart()
+    if not hrp then return false end
+    
+    local targetElevated = Vector3.new(targetPos.X, targetPos.Y + altitude, targetPos.Z)
+    local startTime = tick()
+    
+    while Distance(hrp.Position, targetElevated) > 3 do
+        if not _G.Settings.AIEnabled or tick() - startTime > timeout or not hrp or not hrp.Parent then
+            return false
+        end
+        
+        local direction = (targetElevated - hrp.Position).Unit
+        hrp.CFrame = CFrame.new(hrp.Position + direction * (_G.Settings.WalkSpeed * 0.022))
+        task.wait(0.015)
+    end
+    
+    return true
+end
+
+-- ==========================================================
+-- FAKE DOOR DETECTION SYSTEM
 -- ==========================================================
 local function AnalyzeDoor(doorPart, doorModel)
     if not doorPart or not doorModel then return false end
@@ -223,14 +273,14 @@ local function AnalyzeDoor(doorPart, doorModel)
         table.insert(analysis.Reasons, "Şüpheli Doku")
     end
     
-    -- [2] Size Check (Sahte kapılar genellikle daha küçük)
+    -- [2] Size Check
     local doorSize = doorPart.Size
     if doorSize.X < 4 or doorSize.Y < 6 then
         analysis.Confidence = analysis.Confidence + 0.4
         table.insert(analysis.Reasons, "Gerçekçi Olmayan Boyut")
     end
     
-    -- [3] Position Check (Duvara batıyor mu?)
+    -- [3] Position Check
     local doorPos = doorPart.Position
     local ray = Ray.new(doorPos, Vector3.new(0, -10, 0))
     local hit, hitPos = Workspace:FindPartOnRay(ray, Character)
@@ -240,7 +290,7 @@ local function AnalyzeDoor(doorPart, doorModel)
         table.insert(analysis.Reasons, "Duvarda Batılı")
     end
     
-    -- [4] Sound Check (Kapı sesi var mı?)
+    -- [4] Sound Check
     local hasSound = false
     for _, obj in pairs(doorModel:GetDescendants()) do
         if obj:IsA("Sound") then
@@ -295,7 +345,6 @@ local function FindNextDoor(room, hrp)
                     if doorPart then
                         local dist = Distance(hrp.Position, doorPart.Position)
                         
-                        -- Sahte kapı algılaması
                         if _G.Settings.FakeDoorDetection then
                             local isFake = AnalyzeDoor(doorPart, doorModel)
                             if isFake then
@@ -376,48 +425,8 @@ local function GetEntityPosition(entity)
     return pos
 end
 
-local function IsEntityThreatening()
-    local hrp = GetHumanoidRootPart()
-    if not hrp then return false end
-    
-    local threatDistance = {
-        Seek = 80,
-        Rush = 60,
-        Ambush = 50
-    }
-    
-    for _, entity in pairs(Workspace:GetChildren()) do
-        if entity.Name == "SeekMoving" or entity.Name == "SeekRig" then
-            local pos = GetEntityPosition(entity)
-            if pos and Distance(hrp.Position, pos) < threatDistance.Seek then
-                _G.GameState.ActiveEntity = entity
-                _G.GameState.EntityType = "Seek"
-                return true
-            end
-        elseif entity.Name == "RushMoving" then
-            local pos = GetEntityPosition(entity)
-            if pos and Distance(hrp.Position, pos) < threatDistance.Rush then
-                _G.GameState.ActiveEntity = entity
-                _G.GameState.EntityType = "Rush"
-                return true
-            end
-        elseif entity.Name == "AmbushMoving" then
-            local pos = GetEntityPosition(entity)
-            if pos and Distance(hrp.Position, pos) < threatDistance.Ambush then
-                _G.GameState.ActiveEntity = entity
-                _G.GameState.EntityType = "Ambush"
-                return true
-            end
-        end
-    end
-    
-    _G.GameState.ActiveEntity = nil
-    _G.GameState.EntityType = nil
-    return false
-end
-
 -- ==========================================================
--- HIDIDING SYSTEM (Closet/Wardrobe)
+-- HIDING SYSTEM (Closet/Wardrobe)
 -- ==========================================================
 local function FindHidingSpot(room, hrp)
     if not room or not hrp then return nil, nil end
@@ -460,11 +469,9 @@ local function HideInCloset(room, hrp)
         return false
     end
     
-    -- Gizli yere git
     WalkToTarget(hidingData.part.Position, 15, 2)
     task.wait(0.2)
     
-    -- Prompt'u tetikle
     SafeExecute(function()
         if hidingData.prompt.TriggerPrompt then
             hidingData.prompt:TriggerPrompt()
@@ -481,58 +488,7 @@ local function HideInCloset(room, hrp)
 end
 
 -- ==========================================================
--- SMOOTH MOVEMENT SYSTEM
--- ==========================================================
-local function WalkToTarget(targetPos, timeout, stoppingDistance)
-    timeout = timeout or 10
-    stoppingDistance = stoppingDistance or 3
-    
-    local hrp = GetHumanoidRootPart()
-    local humanoid = GetHumanoid()
-    
-    if not hrp or not humanoid then return false end
-    
-    humanoid.WalkSpeed = _G.Settings.WalkSpeed
-    humanoid:MoveTo(targetPos)
-    
-    local startTime = tick()
-    while Distance(hrp.Position, targetPos) > stoppingDistance do
-        if not _G.Settings.AIEnabled or tick() - startTime > timeout or not hrp or not hrp.Parent then
-            humanoid.WalkSpeed = 16
-            return false
-        end
-        task.wait(0.05)
-    end
-    
-    humanoid.WalkSpeed = 16
-    return true
-end
-
-local function FlyToTarget(targetPos, timeout, altitude)
-    altitude = altitude or _G.Settings.FlyHeight
-    timeout = timeout or 10
-    
-    local hrp = GetHumanoidRootPart()
-    if not hrp then return false end
-    
-    local targetElevated = Vector3.new(targetPos.X, targetPos.Y + altitude, targetPos.Z)
-    local startTime = tick()
-    
-    while Distance(hrp.Position, targetElevated) > 3 do
-        if not _G.Settings.AIEnabled or tick() - startTime > timeout or not hrp or not hrp.Parent then
-            return false
-        end
-        
-        local direction = (targetElevated - hrp.Position).Unit
-        hrp.CFrame = CFrame.new(hrp.Position + direction * (_G.Settings.WalkSpeed * 0.022))
-        task.wait(0.015)
-    end
-    
-    return true
-end
-
--- ==========================================================
--- LIBRARY PUZZLE SOLVER (ADVANCED)
+-- LIBRARY PUZZLE SOLVER
 -- ==========================================================
 local _LibraryData = {
     ShapeOrder = {},
@@ -586,7 +542,6 @@ local function ReadLibraryBooks(room)
             if prompt then
                 local bookPart = book:FindFirstChildWhichIsA("BasePart", true) or book
                 
-                -- Kitabı oku
                 WalkToTarget(bookPart.Position, 5, 2)
                 task.wait(0.1)
                 
@@ -598,7 +553,6 @@ local function ReadLibraryBooks(room)
                 
                 task.wait(0.3)
                 
-                -- GUI'den bilgi oku
                 local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
                 if playerGui then
                     for _, textObj in pairs(playerGui:GetDescendants()) do
@@ -629,7 +583,7 @@ local function ReadLibraryBooks(room)
         end
     end, "ReadLibraryBooks")
     
-    Log("📚 Kitaplar Okundu: " .. table.concat(_LibraryData.ShapeNumbers, ", "), "LIBRARY")
+    Log("📚 Kitaplar Okundu", "LIBRARY")
 end
 
 local function GenerateLibraryPassword()
@@ -655,14 +609,12 @@ local function SolveLibrary(room)
     if not hrp or not humanoid then return false end
     
     if _G.Settings.AutoSolveLibrary then
-        -- Eğilme animasyonunu başlat
         SafeExecute(function()
             ReplicatedStorage.RemotesFolder.Crouch:FireServer(true)
         end, "LibraryCrouch")
         
         task.wait(0.3)
         
-        -- Kağıt oku (hint)
         SafeExecute(function()
             for _, obj in pairs(room:GetDescendants()) do
                 if obj.Name:find("Paper") or obj.Name:find("Hint") then
@@ -682,20 +634,14 @@ local function SolveLibrary(room)
         end, "ReadPaper")
         
         task.wait(0.2)
-        
-        -- Shape order'ı tara
         ScanLibraryShapeOrder()
         task.wait(0.3)
-        
-        -- Kitapları oku
         ReadLibraryBooks(room)
         task.wait(0.3)
         
-        -- Şifreyi oluştur
         local password = GenerateLibraryPassword()
         
         if password and password ~= "" then
-            -- Kilit bul ve şifreyi gir
             SafeExecute(function()
                 local padlock = room:FindFirstChild("Padlock") or room:FindFirstChild("Lock")
                 if padlock then
@@ -706,7 +652,7 @@ local function SolveLibrary(room)
                         
                         ReplicatedStorage.RemotesFolder.PL:FireServer(password)
                         Success("✅ Şifre Gönderildi: " .. password)
-                        _G.Statistics.LibrarariesSolved = _G.Statistics.LibrarariesSolved + 1
+                        _G.Statistics.LibrariesSolved = _G.Statistics.LibrariesSolved + 1
                     end
                 end
             end, "EnterPassword")
@@ -716,7 +662,6 @@ local function SolveLibrary(room)
         
         task.wait(0.3)
         
-        -- Eğilme animasyonunu bitir
         SafeExecute(function()
             ReplicatedStorage.RemotesFolder.Crouch:FireServer(false)
         end, "LibraryCrouchEnd")
@@ -799,7 +744,6 @@ task.spawn(function()
             local humanoid = GetHumanoid()
             if not hrp or not humanoid then goto continue end
             
-            -- Oda numarası değişti mi?
             if roomNum ~= _G.GameState.LastRoomNumber then
                 _G.GameState.LastRoomNumber = roomNum
                 _G.Statistics.RoomsCompleted = roomNum
@@ -810,22 +754,16 @@ task.spawn(function()
             -- [DURUM 1]: SEEK KAÇIŞI
             if _G.Settings.SeekDetection and DetectSeek() then
                 Log("🏃 SEEK SALDIRISI! KAÇILIYOR...", "THREAT")
-                
                 humanoid.WalkSpeed = math.max(_G.Settings.SprintSpeed, 45)
-                
-                -- Seek'ten uzaklaş
                 local entity = _G.GameState.ActiveEntity
                 if entity then
                     local entityPos = GetEntityPosition(entity)
                     if entityPos then
-                        -- Ters yöne koş
                         local escapeDir = (hrp.Position - entityPos).Unit
                         local escapePos = hrp.Position + escapeDir * 100
-                        
                         WalkToTarget(escapePos, 30, 5)
                     end
                 end
-                
                 _G.Statistics.EntitiesAvoided = _G.Statistics.EntitiesAvoided + 1
                 goto continue
             end
@@ -833,7 +771,6 @@ task.spawn(function()
             -- [DURUM 2]: RUSH KAÇIŞI
             if _G.Settings.RushDetection and DetectRush() then
                 Log("⚡ RUSH UYARISI! TEZDEN GİT!", "THREAT")
-                
                 humanoid.WalkSpeed = _G.Settings.SprintSpeed
                 local door = room:FindFirstChild("Door")
                 if door then
@@ -842,7 +779,6 @@ task.spawn(function()
                         WalkToTarget(doorPart.Position, 15, 3)
                     end
                 end
-                
                 _G.Statistics.EntitiesAvoided = _G.Statistics.EntitiesAvoided + 1
                 goto continue
             end
@@ -850,9 +786,7 @@ task.spawn(function()
             -- [DURUM 3]: AMBUSH KAÇIŞI
             if _G.Settings.AmbushDetection and DetectAmbush() then
                 Log("🎭 AMBUSH SALDIRISI! SAKLANILIYOR...", "THREAT")
-                
                 HideInCloset(room, hrp)
-                
                 _G.Statistics.EntitiesAvoided = _G.Statistics.EntitiesAvoided + 1
                 goto continue
             end
@@ -865,25 +799,19 @@ task.spawn(function()
             
             -- [DURUM 5]: NORMAL ODA İŞLEMİ
             humanoid.WalkSpeed = _G.Settings.WalkSpeed
-            
-            -- Anahtar al
             PickupKey(room)
             
-            -- Sonraki kapıyı bul
             local nextDoor = FindNextDoor(room, hrp)
             if nextDoor then
                 local doorPart = nextDoor:FindFirstChildWhichIsA("BasePart")
                 if doorPart then
-                    -- Kapıya git
                     WalkToTarget(doorPart.Position, 10, 2)
                     task.wait(0.1)
                     
-                    -- Kilit kontrol et
                     local lock = nextDoor:FindFirstChild("Lock")
                     if lock and not HasKey() then
                         Log("🔓 Anahtar gerekli, bulunmuyor!", "WARNING")
                     elseif lock and HasKey() then
-                        -- Kilit aç
                         local lockPrompt = lock:FindFirstChildWhichIsA("ProximityPrompt", true)
                         if lockPrompt then
                             local keyTool = LocalPlayer.Backpack:FindFirstChild("Key")
@@ -899,12 +827,10 @@ task.spawn(function()
                                     fireproximityprompt(lockPrompt)
                                 end
                             end, "UnlockDoor")
-                            
                             task.wait(0.2)
                         end
                     end
                     
-                    -- Kapıyı aç
                     local doorPrompt = doorPart.Parent:FindFirstChildWhichIsA("ProximityPrompt", true)
                     if doorPrompt then
                         SafeExecute(function()
@@ -948,7 +874,6 @@ task.spawn(function()
             end
         end, "LightingSystem")
         
-        -- Entity Highlight
         if _G.Settings.HighlightEntities then
             SafeExecute(function()
                 for _, entity in pairs(Workspace:GetChildren()) do
@@ -972,10 +897,8 @@ task.spawn(function()
 end)
 
 -- ==========================================================
--- UI SETUP
+-- UI CONTROLS & BINDINGS
 -- ==========================================================
-
--- MAIN TAB
 MainTab:CreateSection("🎮 Bot Durumu")
 local BotStatusLabel = MainTab:CreateLabel("⏹️ Kapalı")
 
@@ -985,7 +908,7 @@ MainTab:CreateToggle({
     Flag = "AIEnabled",
     Callback = function(Value)
         _G.Settings.AIEnabled = Value
-        BotStatusLabel:Set(Value and "✅ Çalışıyor" or "⏹️ Kapalı")
+        pcall(function() BotStatusLabel:Set(Value and "✅ Çalışıyor" or "⏹️ Kapalı") end)
         Rayfield:Notify({
             Title = Value and "✅ AI Açıldı" or "⏹️ AI Kapandı",
             Content = Value and "Bot oyunu oynayacak" or "Bot durduruldu",
@@ -1017,7 +940,6 @@ MainTab:CreateSlider({
     end
 })
 
--- AI TAB
 AITab:CreateSection("🧠 AI İşlevleri")
 AITab:CreateToggle({
     Name = "🔐 Otomatik Kütüphane Çözme",
@@ -1025,15 +947,6 @@ AITab:CreateToggle({
     Flag = "AutoSolveLibrary",
     Callback = function(Value)
         _G.Settings.AutoSolveLibrary = Value
-    end
-})
-
-AITab:CreateToggle({
-    Name = "🚪 Otomatik Kapı Açma",
-    CurrentValue = true,
-    Flag = "AutoOpenDoors",
-    Callback = function(Value)
-        _G.Settings.AutoOpenDoors = Value
     end
 })
 
@@ -1055,7 +968,6 @@ AITab:CreateToggle({
     end
 })
 
--- DETECTION TAB
 DetectionTab:CreateSection("🎯 Tehdit Algılaması")
 DetectionTab:CreateToggle({
     Name = "👹 Seek Algılaması",
@@ -1090,15 +1002,9 @@ DetectionTab:CreateToggle({
     Flag = "FakeDoorDetection",
     Callback = function(Value)
         _G.Settings.FakeDoorDetection = Value
-        Rayfield:Notify({
-            Title = "🚪 Sahte Kapı Algılaması",
-            Content = Value and "Açıldı - Çökmeler önlenecek" or "Kapatıldı",
-            Duration = 3
-        })
     end
 })
 
--- LIBRARY TAB
 LibraryTab:CreateSection("📚 Kütüphane Çözücü")
 local LibraryStatusLabel = LibraryTab:CreateLabel("⏳ Hazır...")
 
@@ -1108,14 +1014,13 @@ LibraryTab:CreateButton({
         local room = GetCurrentRoom()
         if room and room.Name == "50" then
             SolveLibrary(room)
-            LibraryStatusLabel:Set("✅ Çözüldü!")
+            pcall(function() LibraryStatusLabel:Set("✅ Çözüldü!") end)
         else
-            LibraryStatusLabel:Set("❌ Kütüphane Odası Değil")
+            pcall(function() LibraryStatusLabel:Set("❌ Kütüphane Odası Değil") end)
         end
     end
 })
 
--- VISUALS TAB
 VisualsTab:CreateSection("👁️ Görsel Ayarlar")
 VisualsTab:CreateToggle({
     Name = "💡 Fullbright",
@@ -1135,40 +1040,38 @@ VisualsTab:CreateToggle({
     end
 })
 
--- STATS TAB
 StatsTab:CreateSection("📊 İstatistikler")
 local StatsLabel = StatsTab:CreateLabel("Yükleniyor...")
 
 task.spawn(function()
     while _G.DoorsAI_v12.Running do
         task.wait(2)
-        
         local uptime = tick() - _G.Statistics.StartTime
         local hours = math.floor(uptime / 3600)
         local minutes = math.floor((uptime % 3600) / 60)
-        local seconds = uptime % 60
+        local seconds = math.floor(uptime % 60)
         
-        StatsLabel:Set(
-            "📍 Odalar: " .. _G.Statistics.RoomsCompleted .. "\n" ..
-            "🚪 Kapılar: " .. _G.Statistics.DoorsOpened .. "\n" ..
-            "🔑 Anahtarlar: " .. _G.Statistics.KeysCollected .. "\n" ..
-            "👹 Kaçışlar: " .. _G.Statistics.EntitiesAvoided .. "\n" ..
-            "📚 Kütüphaneler: " .. _G.Statistics.LibrarariesSolved .. "\n" ..
-            "🚪 Saklanmalar: " .. _G.Statistics.TimesHidden .. "\n" ..
-            "❌ Hatalar: " .. _G.Statistics.Errors .. "\n" ..
-            "⏱️ Süre: " .. string.format("%02d:%02d:%02d", hours, minutes, seconds)
-        )
+        pcall(function()
+            StatsLabel:Set(
+                "📍 Odalar: " .. _G.Statistics.RoomsCompleted .. "\n" ..
+                "🚪 Kapılar: " .. _G.Statistics.DoorsOpened .. "\n" ..
+                "🔑 Anahtarlar: " .. _G.Statistics.KeysCollected .. "\n" ..
+                "👹 Kaçışlar: " .. _G.Statistics.EntitiesAvoided .. "\n" ..
+                "📚 Kütüphaneler: " .. _G.Statistics.LibrariesSolved .. "\n" ..
+                "🚪 Saklanmalar: " .. _G.Statistics.TimesHidden .. "\n" ..
+                "❌ Hatalar: " .. _G.Statistics.Errors .. "\n" ..
+                "⏱️ Süre: " .. string.format("%02d:%02d:%02d", hours, minutes, seconds)
+            )
+        end)
     end
 end)
 
 Rayfield:Notify({
     Title = "✅ DOORS MASTER AI v12.0",
     Content = "Tüm sistemler yüklendi ve hazır!",
-    Duration = 5,
-    Image = 4483362458
+    Duration = 5
 })
 
 Log("✅ Bot tamamen yüklendi ve hazır!", "SUCCESS")
 
 return _G.DoorsAI_v12
-
