@@ -1,624 +1,289 @@
 
 -- ==========================================================
--- DOORS ULTIMATE MASTER HUB | RAYFIELD UI EDITION
+-- DOORS ULTIMATE AI HUB | RAYFIELD EDITION v6.0 (FIXED)
 -- ==========================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
-local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
+
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
--- Çift çalıştırma koruması
-if _G.DoorsMasterHubRunning then 
-    pcall(function() Rayfield:Destroy() end)
+-- Önceki script çalışıyorsa durdur
+if _G.DoorsAI_Running then 
+    pcall(function() _G.DoorsAI_Running = false task.wait(0.5) end)
 end
-_G.DoorsMasterHubRunning = true
+_G.DoorsAI_Running = true
 
--- Global Ayarlar Tablosu
+-- ÇÖKME FİX: Tüm özellikler varsayılan olarak KAPALI (false) başlar
 _G.Settings = {
-    AutoPlayMaster = false,
-    EntityAvoid = true,
-    AutoKeyCollect = true,
-    AutoKeyDoor = true,
-    AutoGold = true,
-    FlightMode = false,
-    GlideSmoothness = 8,
-    FlightSpeed = 35,
-    TargetDistance = 6,
-    FlightParticles = true,
+    AIBot = false,         -- Yapay Zeka Başlangıçta Kapalı
+    GlideSpeed = 35,       -- Süzülme Hızı
     Fullbright = false,
-    EntityESP = true,
-    DoorESP = true,
-    ItemESP = true,
-    PlayerESP = false,
-    SpeedBoost = false,
-    HighJump = false,
-    GodMode = false,
-    InfiniteStamina = true
+    EntityESP = false,
+    ItemESP = false
 }
-
--- ESP Container
-local ESPContainer = Instance.new("Folder")
-ESPContainer.Name = "DoorsMasterESPContainer"
-ESPContainer.Parent = Workspace
 
 -- Rayfield UI Yükleme
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Doors Ultimate Master Hub",
-   LoadingTitle = "Doors Pro Yükleniyor...",
-   LoadingSubtitle = "by Usplaxcl & Rayfield UI",
-   ConfigurationSaving = {
-      Enabled = false,
-      FolderName = "DoorsMasterHub",
-      FileName = "Config"
-   },
-   Discord = {
-      Enabled = false,
-      Invite = "noinvite",
-      RememberJoins = true
-   },
-   KeySystem = false,
-   KeySettings = {
-      Title = "Doors Hub",
-      Subtitle = "Key Sistemi",
-      Note = "Key gerekmez.",
-      FileName = "Key",
-      SaveKey = true,
-      GrabKeyFromSite = false,
-      Key = {"123"}
-   }
+   Name = "Doors AI Master Hub",
+   LoadingTitle = "Yapay Zeka Yükleniyor...",
+   LoadingSubtitle = "by Usplaxcl - Çökme Korumalı",
+   ConfigurationSaving = { Enabled = false },
+   KeySystem = false
 })
 
 -- Sekmeler
-local AutoTab = Window:CreateTab("Otomasyon", "bot")
-local FlightTab = Window:CreateTab("Uçuş & Hareket", "feather")
-local VisualTab = Window:CreateTab("Görsel & ESP", "eye")
-local CharTab = Window:CreateTab("Karakter", "user")
+local AITab = Window:CreateTab("Yapay Zeka", "cpu")
+local ESPTab = Window:CreateTab("Görsel & ESP", "eye")
 local MiscTab = Window:CreateTab("Diğer", "settings")
 
 -- ==========================================================
--- OTOMASYON SEKME İÇERİĞİ
+-- 1. YAPAY ZEKA SEKMESİ (TEK BUTON SİSTEMİ)
 -- ==========================================================
-AutoTab:CreateSection("Otomatik İlerleme Kontrolleri")
+AITab:CreateSection("Tam Otomatik AI Sistemi")
+AITab:CreateParagraph({
+    Title = "AI Nasıl Çalışır?",
+    Content = "1. Yaratık > 2. Anahtar > 3. Kapı sırasıyla çalışır. Noclip otomatik açıktır, duvarların içinden süzülerek geçer."
+})
 
-AutoTab:CreateToggle({
-   Name = "Tam Otomatik Oyun Modu (Auto-Play)",
-   CurrentValue = _G.Settings.AutoPlayMaster,
-   Flag = "AutoPlayMaster",
+AITab:CreateToggle({
+   Name = "Yapay Zeka Botunu Başlat (Her Şeyi O Yapar)",
+   CurrentValue = false,
+   Flag = "AIBot",
    Callback = function(Value)
-      _G.Settings.AutoPlayMaster = Value
+      _G.Settings.AIBot = Value
+      if Value then
+          Rayfield:Notify({Title = "AI Aktif!", Content = "Bot kontrolü ele aldı. Arkanıza yaslanın.", Duration = 3})
+      end
    end,
 })
 
-AutoTab:CreateToggle({
-   Name = "Akıllı Canavar Kaçış Sistemi (Dolap)",
-   CurrentValue = _G.Settings.EntityAvoid,
-   Flag = "EntityAvoid",
-   Callback = function(Value)
-      _G.Settings.EntityAvoid = Value
-   end,
-})
-
-AutoTab:CreateToggle({
-   Name = "Otomatik Anahtar Toplayıcı",
-   CurrentValue = _G.Settings.AutoKeyCollect,
-   Flag = "AutoKeyCollect",
-   Callback = function(Value)
-      _G.Settings.AutoKeyCollect = Value
-   end,
-})
-
-AutoTab:CreateToggle({
-   Name = "Kilidi Açık / Anahtarlı Kapı Otomasyonu",
-   CurrentValue = _G.Settings.AutoKeyDoor,
-   Flag = "AutoKeyDoor",
-   Callback = function(Value)
-      _G.Settings.AutoKeyDoor = Value
-   end,
-})
-
-AutoTab:CreateToggle({
-   Name = "Altın ve Para Otomatik Toplama",
-   CurrentValue = _G.Settings.AutoGold,
-   Flag = "AutoGold",
-   Callback = function(Value)
-      _G.Settings.AutoGold = Value
-   end,
-})
-
-AutoTab:CreateButton({
-   Name = "Harita Verilerini ve Döngüyü Sıfırla",
-   Callback = function()
-      _G.RefreshMap = true
-      Rayfield:Notify({Title = "Sıfırlandı", Content = "Otomasyon önbelleği temizlendi.", Duration = 2})
-   end,
-})
-
--- ==========================================================
--- UÇUŞ SEKME İÇERİĞİ
--- ==========================================================
-FlightTab:CreateSection("NoClip ve Uçuş Ayarları")
-
-FlightTab:CreateToggle({
-   Name = "NoClip Uçuş Modu",
-   CurrentValue = _G.Settings.FlightMode,
-   Flag = "FlightMode",
-   Callback = function(Value)
-      _G.Settings.FlightMode = Value
-   end,
-})
-
-FlightTab:CreateSlider({
-   Name = "Uçuş Hızı",
-   Range = {10, 100},
+AITab:CreateSlider({
+   Name = "Bot Süzülme (Uçma) Hızı",
+   Range = {20, 80},
    Increment = 1,
    CurrentValue = 35,
-   Flag = "FlightSpeed",
+   Flag = "GlideSpeed",
    Callback = function(Value)
-      _G.Settings.FlightSpeed = Value
-   end,
-})
-
-FlightTab:CreateSlider({
-   Name = "Süzülme / Kayma Yumuşaklığı",
-   Range = {1, 20},
-   Increment = 1,
-   CurrentValue = 8,
-   Flag = "GlideSmoothness",
-   Callback = function(Value)
-      _G.Settings.GlideSmoothness = Value
-   end,
-})
-
-FlightTab:CreateSlider({
-   Name = "Hedefe Varış Mesafesi",
-   Range = {3, 15},
-   Increment = 1,
-   CurrentValue = 6,
-   Flag = "TargetDistance",
-   Callback = function(Value)
-      _G.Settings.TargetDistance = Value
-   end,
-})
-
-FlightTab:CreateToggle({
-   Name = "Uçuş Partikül Efekti",
-   CurrentValue = _G.Settings.FlightParticles,
-   Flag = "FlightParticles",
-   Callback = function(Value)
-      _G.Settings.FlightParticles = Value
+      _G.Settings.GlideSpeed = Value
    end,
 })
 
 -- ==========================================================
--- GÖRSEL SEKME İÇERİĞİ
+-- 2. GÖRSEL SEKMESİ (ESP & FULLBRIGHT)
 -- ==========================================================
-VisualTab:CreateSection("ESP ve Aydınlatma")
+ESPTab:CreateSection("Görsel Destek")
 
-VisualTab:CreateToggle({
-   Name = "Fullbright (Karanlığı Kaldır)",
-   CurrentValue = _G.Settings.Fullbright,
+ESPTab:CreateToggle({
+   Name = "Fullbright (Karanlığı Sil)",
+   CurrentValue = false,
    Flag = "Fullbright",
    Callback = function(Value)
       _G.Settings.Fullbright = Value
    end,
 })
 
-VisualTab:CreateToggle({
-   Name = "Canavar Varlık ESP (Rush, Ambush vb.)",
-   CurrentValue = _G.Settings.EntityESP,
+ESPTab:CreateToggle({
+   Name = "Canavar ESP",
+   CurrentValue = false,
    Flag = "EntityESP",
    Callback = function(Value)
       _G.Settings.EntityESP = Value
    end,
 })
 
-VisualTab:CreateToggle({
-   Name = "Kapı ESP",
-   CurrentValue = _G.Settings.DoorESP,
-   Flag = "DoorESP",
-   Callback = function(Value)
-      _G.Settings.DoorESP = Value
-   end,
-})
-
-VisualTab:CreateToggle({
-   Name = "Anahtar ve Eşya ESP",
-   CurrentValue = _G.Settings.ItemESP,
-   Flag = "ItemESP",
-   Callback = function(Value)
-      _G.Settings.ItemESP = Value
-   end,
-})
-
-VisualTab:CreateToggle({
-   Name = "Oyuncu ESP",
-   CurrentValue = _G.Settings.PlayerESP,
-   Flag = "PlayerESP",
-   Callback = function(Value)
-      _G.Settings.PlayerESP = Value
-   end,
-})
-
 -- ==========================================================
--- KARAKTER SEKME İÇERİĞİ
+-- YAPAY ZEKA (AI) MOTORU VE FONKSİYONLAR
 -- ==========================================================
-CharTab:CreateSection("Karakter Güçlendirmeleri")
+local currentTween = nil
 
-CharTab:CreateToggle({
-   Name = "Hızlı Koşma (WalkSpeed 22)",
-   CurrentValue = _G.Settings.SpeedBoost,
-   Flag = "SpeedBoost",
-   Callback = function(Value)
-      _G.Settings.SpeedBoost = Value
-   end,
-})
-
-CharTab:CreateToggle({
-   Name = "Yüksek Zıplama",
-   CurrentValue = _G.Settings.HighJump,
-   Flag = "HighJump",
-   Callback = function(Value)
-      _G.Settings.HighJump = Value
-   end,
-})
-
-CharTab:CreateToggle({
-   Name = "Ölümsüzlük / Hasar Koruması",
-   CurrentValue = _G.Settings.GodMode,
-   Flag = "GodMode",
-   Callback = function(Value)
-      _G.Settings.GodMode = Value
-   end,
-})
-
--- ==========================================================
--- DİĞER SEKME İÇERİĞİ
--- ==========================================================
-MiscTab:CreateSection("Sunucu İşlemleri")
-
-MiscTab:CreateButton({
-   Name = "Aynı Sunucuya Yeniden Bağlan",
-   Callback = function()
-      game:GetService("TeleportService"):Teleport(game.PlaceId)
-   end,
-})
-
-MiscTab:CreateButton({
-   Name = "Script'i Tamamen Kapat ve Temizle",
-   Callback = function()
-      _G.DoorsMasterHubRunning = false
-      _G.Settings.FlightMode = false
-      _G.Settings.AutoPlayMaster = false
-      pcall(function() ESPContainer:Destroy() end)
-      Rayfield:Destroy()
-   end,
-})
-
--- ==========================================================
--- MOTOR VE MANTIK ALTYAPISI
--- ==========================================================
-local flightConn, bodyVel, bodyGyro, particleEmi
-
-local function CreateFlightParticles(char)
-    if not char then return end
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    
-    local att = Instance.new("Attachment")
-    att.Parent = root
-    att.Position = Vector3.new(0, -2, 0)
-    
-    local part = Instance.new("ParticleEmitter")
-    part.Parent = att
-    part.Texture = "rbxassetid://12805312561"
-    part.Rate = 35
-    part.Lifetime = NumberRange.new(0.3, 0.6)
-    part.Speed = NumberRange.new(1, 2)
-    part.Size = NumberSequence.new(0.15, 0)
-    part.Color = ColorSequence.new(Color3.fromRGB(120, 80, 255))
-    return part
-end
-
-local function StartFlight()
-    if flightConn then flightConn:Disconnect() end
-    flightConn = RunService.RenderStepped:Connect(function()
-        local char = LocalPlayer.Character
-        if not char then return end
-        local hum = char:FindFirstChild("Humanoid")
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not hum or not root then return end
-        
-        hum.PlatformStand = true
-        
-        if not bodyVel or not bodyVel.Parent then
-            bodyVel = Instance.new("BodyVelocity")
-            bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            bodyVel.Velocity = Vector3.new(0, 0, 0)
-            bodyVel.Parent = root
-        end
-        
-        if not bodyGyro or not bodyGyro.Parent then
-            bodyGyro = Instance.new("BodyGyro")
-            bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-            bodyGyro.CFrame = root.CFrame
-            bodyGyro.Parent = root
-        end
-        
-        if _G.Settings.FlightParticles then
-            if not particleEmi or not particleEmi.Parent then
-                particleEmi = CreateFlightParticles(char)
-            end
-        else
-            if particleEmi then particleEmi:Destroy(); particleEmi = nil end
-        end
-    end)
-end
-
-local function StopFlight()
-    if flightConn then flightConn:Disconnect(); flightConn = nil end
-    if bodyVel then bodyVel:Destroy(); bodyVel = nil end
-    if bodyGyro then bodyGyro:Destroy(); bodyGyro = nil end
-    if particleEmi then particleEmi:Destroy(); particleEmi = nil end
-    
-    local char = LocalPlayer.Character
-    if char then
-        local hum = char:FindFirstChild("Humanoid")
-        if hum then hum.PlatformStand = false end
-    end
-end
-
--- Kayarak Hedefe Gitme Motoru
-local function GlideToTarget(targetPos, targetPart)
-    local char = LocalPlayer.Character
-    if not char then return end
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    
-    local speed = _G.Settings.FlightSpeed or 35
-    local smoothness = _G.Settings.GlideSmoothness or 8
-    local targetDist = _G.Settings.TargetDistance or 6
-    
-    local completed = false
-    local timeElapsed = 0
-    
-    local conn
-    conn = RunService.RenderStepped:Connect(function(dt)
-        timeElapsed = timeElapsed + dt
-        if timeElapsed > 6 or completed then
-            conn:Disconnect()
-            return
-        end
-        
-        local currentPos = root.Position
-        local dist = (targetPos - currentPos).Magnitude
-        
-        if dist <= targetDist then
-            completed = true
-            if targetPart then
-                pcall(function()
-                    firetouchinterest(char, targetPart.Parent or targetPart, 0)
-                    task.wait(0.05)
-                    firetouchinterest(char, targetPart.Parent or targetPart, 1)
-                    local prompt = targetPart.Parent and targetPart.Parent:FindFirstChildWhichIsA("ProximityPrompt")
-                    if prompt then fireproximityprompt(targetPart.Parent) end
-                end)
-            end
-            conn:Disconnect()
-            return
-        end
-        
-        local dir = (targetPos - currentPos).unit
-        local smoothFactor = math.min(1, dist / smoothness)
-        local curSpeed = speed * smoothFactor
-        local targetH = targetPos.Y + 2
-        
-        local newPos = currentPos + dir * curSpeed * dt
-        newPos = Vector3.new(newPos.X, currentPos.Y + (targetH - currentPos.Y) * dt * 3, newPos.Z)
-        
-        if bodyVel then bodyVel.Velocity = (newPos - currentPos) / dt end
-        if bodyGyro then bodyGyro.CFrame = CFrame.lookAt(currentPos, targetPos) end
-    end)
-end
-
--- Anahtar Arama Fonksiyonu
-local function FindKey()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return nil end
-    
-    local bestKey, bestDist = nil, 250
-    for _, item in pairs(Workspace:GetDescendants()) do
-        if item:IsA("Tool") or item:IsA("Model") then
-            local name = item.Name:lower()
-            if name:find("key") and not name:find("keyhole") then
-                local handle = item:FindFirstChild("Handle") or item:FindFirstChildWhichIsA("BasePart")
-                if handle then
-                    local dist = (root.Position - handle.Position).Magnitude
-                    if dist < bestDist then
-                        bestDist = dist
-                        bestKey = {item = item, part = handle, pos = handle.Position}
-                    end
-                end
+-- Noclip (Duvarlardan geçme) döngüsü
+RunService.Stepped:Connect(function()
+    if _G.Settings.AIBot and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
             end
         end
     end
-    return bestKey
+end)
+
+-- Pürüzsüz Süzülme Fonksiyonu
+local function GlideTo(targetCFrame)
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    if currentTween then currentTween:Cancel() end
+    
+    local distance = (hrp.Position - targetCFrame.Position).Magnitude
+    local timeToTravel = distance / _G.Settings.GlideSpeed
+    
+    local tweenInfo = TweenInfo.new(timeToTravel, Enum.EasingStyle.Linear)
+    currentTween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
+    currentTween:Play()
+    
+    return timeToTravel
 end
 
--- Otomasyon Ana Döngüsü
+-- Yaratık Kontrolü
+local function IsEntityComing()
+    for _, v in pairs(Workspace:GetChildren()) do
+        if v.Name == "RushMoving" or v.Name == "AmbushMoving" then
+            return true
+        end
+    end
+    return false
+end
+
+-- En son odayı bulma
+local function GetCurrentRoom()
+    local gameData = ReplicatedStorage:FindFirstChild("GameData")
+    if gameData and gameData:FindFirstChild("LatestRoom") then
+        local roomNum = gameData.LatestRoom.Value
+        return Workspace.CurrentRooms:FindFirstChild(tostring(roomNum))
+    end
+    return nil
+end
+
+-- Yapay Zeka Ana Döngüsü
 task.spawn(function()
-    local hiding = false
-    local lastHideTime = 0
-    local hasKey = false
-    local keyTimer = 0
+    local isHiding = false
     
-    while true do
-        task.wait(0.1)
-        if not _G.DoorsMasterHubRunning then break end
+    while task.wait(0.1) do
+        if not _G.DoorsAI_Running then break end
         
-        if _G.Settings.FlightMode then
-            if not flightConn then StartFlight() end
-        else
-            if flightConn then StopFlight() end
-        end
-        
-        if _G.Settings.AutoPlayMaster then
+        if _G.Settings.AIBot then
             pcall(function()
                 local char = LocalPlayer.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
                 
-                if _G.RefreshMap then
-                    _G.RefreshMap = false
-                    hiding = false
-                    hasKey = false
-                end
+                char:FindFirstChild("Humanoid").PlatformStand = true -- Süzülürken yürümeyi kapat
                 
-                keyTimer = keyTimer + 0.1
-                if keyTimer >= 2 then
-                    keyTimer = 0
-                    hasKey = false
-                    if char then
-                        for _, child in pairs(char:GetChildren()) do
-                            if child:IsA("Tool") and child.Name:lower():find("key") then
-                                hasKey = true
-                                break
-                            end
-                        end
-                    end
-                end
-                
-                -- Canavar / Tehlike Tespiti
-                local dangerDetected = nil
-                local minDangerDist = 140
-                for _, v in pairs(Workspace:GetChildren()) do
-                    if v:IsA("Model") or v:IsA("Part") then
-                        local name = v.Name
-                        if name:find("Rush") or name:find("Ambush") or name:find("Figure") or name:find("Screech") then
-                            local part = v:FindFirstChild("Root") or v:FindFirstChild("Base") or v:FindFirstChildWhichIsA("BasePart")
-                            if part then
-                                local dist = (hrp.Position - part.Position).Magnitude
-                                if dist < minDangerDist then
-                                    minDangerDist = dist
-                                    dangerDetected = v
-                                end
-                            end
-                        end
-                    end
-                end
-                
-                if dangerDetected and _G.Settings.EntityAvoid then
-                    if not hiding then
-                        hiding = true
-                        lastHideTime = tick()
-                        local bestCloset, bestDist = nil, 70
-                        for _, room in pairs(Workspace:GetDescendants()) do
-                            if room:IsA("Model") then
-                                for _, obj in pairs(room:GetDescendants()) do
-                                    local oName = obj.Name:lower()
-                                    if oName:find("wardrobe") or oName:find("closet") or oName:find("hiding") then
-                                        local doorP = obj:FindFirstChild("Door") or obj:FindFirstChild("Entrance") or obj:FindFirstChildWhichIsA("BasePart")
-                                        if doorP then
-                                            local d = (hrp.Position - doorP.Position).Magnitude
-                                            if d < bestDist then
-                                                bestDist = d
-                                                bestCloset = doorP
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                        if bestCloset then
-                            if _G.Settings.FlightMode then
-                                GlideToTarget(bestCloset.Position, bestCloset)
-                            else
-                                hrp.CFrame = bestCloset.CFrame * CFrame.new(0, 0, -2)
-                            end
-                            pcall(function() fireproximityprompt(bestCloset.Parent) end)
-                        end
-                    end
-                else
-                    if hiding and (tick() - lastHideTime) > 2.5 then
-                        hiding = false
-                        hrp.CFrame = hrp.CFrame + hrp.CFrame.LookVector * 6
-                        task.wait(0.3)
-                    end
-                    
-                    if _G.Settings.AutoKeyCollect and not hiding then
-                        local kData = FindKey()
-                        if kData then
-                            if _G.Settings.FlightMode then
-                                GlideToTarget(kData.pos, kData.part)
-                            else
-                                hrp.CFrame = kData.part.CFrame
-                            end
-                            pcall(function()
-                                fireproximityprompt(kData.item)
-                                firetouchinterest(char, kData.item, 0)
-                                firetouchinterest(char, kData.item, 1)
-                            end)
-                            hasKey = true
-                        end
-                    end
-                    
-                    if not hiding and not hasKey then
-                        local nearestDoor, nearestDist = nil, 90
-                        for _, door in pairs(Workspace:GetDescendants()) do
-                            if door.Name == "Door" or door.Name == "DoorWood" or door.Name == "Gate" then
-                                local knob = door:FindFirstChild("Knob") or door:FindFirstChild("Handle")
-                                local part = door:FindFirstChild("Door") or door:FindFirstChildWhichIsA("BasePart")
-                                local target = knob or part
-                                if target and target:IsA("BasePart") then
-                                    local dist = (hrp.Position - target.Position).Magnitude
-                                    if dist < nearestDist then
-                                        nearestDist = dist
-                                        nearestDoor = {door = door, target = target}
+                local room = GetCurrentRoom()
+                if not room then return end
+
+                -- [ÖNCELİK 1]: YARATIK KONTROLÜ
+                if IsEntityComing() then
+                    if not isHiding then
+                        -- En yakın dolabı bul
+                        local bestCloset, bestDist = nil, math.huge
+                        for _, obj in pairs(room:GetDescendants()) do
+                            if obj.Name:find("Wardrobe") or obj.Name:find("Rooms_Locker") then
+                                local door = obj:FindFirstChild("Door") or obj:FindFirstChild("Hidden") or obj:FindFirstChildWhichIsA("BasePart")
+                                if door then
+                                    local dist = (hrp.Position - door.Position).Magnitude
+                                    if dist < bestDist then
+                                        bestDist = dist
+                                        bestCloset = obj
                                     end
                                 end
                             end
                         end
                         
-                        if nearestDoor then
-                            if _G.Settings.FlightMode then
-                                GlideToTarget(nearestDoor.target.Position, nearestDoor.target)
-                            else
-                                local tPos = nearestDoor.target.Position
-                                local moveDir = (tPos - hrp.Position).unit
-                                hrp.CFrame = CFrame.new(tPos - moveDir * 3)
+                        if bestCloset then
+                            local prompt = bestCloset:FindFirstChildWhichIsA("ProximityPrompt", true)
+                            local part = bestCloset:FindFirstChildWhichIsA("BasePart", true)
+                            if part and prompt then
+                                GlideTo(part.CFrame * CFrame.new(0, 0, 2))
+                                task.wait(0.5)
+                                fireproximityprompt(prompt)
+                                isHiding = true
                             end
-                            task.wait(0.2)
-                            pcall(function()
-                                fireclickdetector(nearestDoor.door)
-                                fireproximityprompt(nearestDoor.door)
-                            end)
                         end
                     end
+                    return -- Yaratık varken başka bir şey yapma
+                end
+                
+                -- Yaratık gitti, dolaptan çık
+                if isHiding and not IsEntityComing() then
+                    task.wait(1.5) -- Yaratığın tamamen gitmesi için kısa bekleme
+                    hrp.CFrame = hrp.CFrame * CFrame.new(0, 0, -5)
+                    isHiding = false
+                    return
+                end
+
+                -- [ÖNCELİK 2 & 3]: KAPI VE ANAHTAR MANTIĞI
+                if not isHiding then
+                    local door = room:FindFirstChild("Door")
+                    if door then
+                        local lock = door:FindFirstChild("Lock")
+                        
+                        -- Envanterde anahtar var mı bak
+                        local hasKey = char:FindFirstChild("Key") or (char.Parent == Workspace and LocalPlayer.Backpack:FindFirstChild("Key"))
+                        
+                        if lock and not hasKey then
+                            -- Kilitli ve anahtarımız yok: Anahtarı bul ve al
+                            local keyObj = room:FindFirstChild("KeyObtain", true)
+                            if keyObj then
+                                local prompt = keyObj:FindFirstChildWhichIsA("ProximityPrompt")
+                                if prompt then
+                                    GlideTo(keyObj.CFrame)
+                                    task.wait(0.2)
+                                    fireproximityprompt(prompt)
+                                end
+                            end
+                        else
+                            -- Kilidi yok veya anahtarımız zaten var: Kapıya git
+                            local doorPart = door:FindFirstChild("Door") or door:FindFirstChildWhichIsA("BasePart")
+                            if doorPart then
+                                -- Kapı promptunu veya kilidini bul
+                                local prompt = doorPart.Parent:FindFirstChildWhichIsA("ProximityPrompt", true)
+                                
+                                -- Kilitliyse elimize anahtarı alalım
+                                if lock and hasKey then
+                                    local keyTool = LocalPlayer.Backpack:FindFirstChild("Key")
+                                    if keyTool then
+                                        char.Humanoid:EquipTool(keyTool)
+                                    end
+                                    prompt = lock:FindFirstChildWhichIsA("ProximityPrompt", true)
+                                end
+                                
+                                GlideTo(doorPart.CFrame * CFrame.new(0, 1, 0))
+                                task.wait(0.2)
+                                
+                                if prompt then
+                                    fireproximityprompt(prompt)
+                                end
+                                -- Çarparak açılan kapılar için touch
+                                firetouchinterest(char.HumanoidRootPart, doorPart, 0)
+                                task.wait(0.05)
+                                firetouchinterest(char.HumanoidRootPart, doorPart, 1)
+                            end
+                        end
+                    end
+                end
+            end)
+        else
+            -- AI Kapalıysa karakteri normale döndür
+            pcall(function()
+                if currentTween then currentTween:Cancel(); currentTween = nil end
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("Humanoid") then
+                    char.Humanoid.PlatformStand = false
                 end
             end)
         end
     end
 end)
 
--- Aydınlatma, Hız ve ESP Yöneticileri
+-- Aydınlatma ve ESP Döngüsü (Arka Plan)
 task.spawn(function()
-    while true do
-        task.wait(1)
-        if not _G.DoorsMasterHubRunning then break end
+    while task.wait(1) do
+        if not _G.DoorsAI_Running then break end
         
         -- Fullbright
         pcall(function()
             if _G.Settings.Fullbright then
                 Lighting.Brightness = 2
                 Lighting.ClockTime = 14
-                Lighting.FogEnd = 100000
                 Lighting.GlobalShadows = false
             else
                 Lighting.Brightness = 1
@@ -626,50 +291,20 @@ task.spawn(function()
             end
         end)
         
-        -- Speed & Jump & GodMode
+        -- Canavar ESP
         pcall(function()
-            local char = LocalPlayer.Character
-            if char then
-                local hum = char:FindFirstChild("Humanoid")
-                if hum then
-                    if _G.Settings.SpeedBoost then hum.WalkSpeed = 22 else hum.WalkSpeed = 16 end
-                    if _G.Settings.HighJump then hum.JumpPower = 80 else hum.JumpPower = 50 end
-                end
-            end
-        end)
-        
-        -- Entity & Door ESP
-        pcall(function()
-            for _, v in pairs(Workspace:GetDescendants()) do
-                if v:IsA("Model") or v:IsA("Part") then
-                    local name = v.Name
-                    -- Canavar ESP
-                    if _G.Settings.EntityESP and (name:find("Rush") or name:find("Ambush") or name:find("Figure") or name:find("Screech") or name:find("Seek")) then
-                        if not v:FindFirstChild("MasterESP_Entity") then
-                            local hl = Instance.new("Highlight")
-                            hl.Name = "MasterESP_Entity"
-                            hl.FillColor = Color3.fromRGB(255, 30, 30)
-                            hl.OutlineColor = Color3.fromRGB(255, 120, 120)
-                            hl.Parent = v
-                        end
-                    elseif not _G.Settings.EntityESP then
-                        local esp = v:FindFirstChild("MasterESP_Entity")
-                        if esp then esp:Destroy() end
+            for _, v in pairs(Workspace:GetChildren()) do
+                if v.Name == "RushMoving" or v.Name == "AmbushMoving" then
+                    if _G.Settings.EntityESP and not v:FindFirstChild("MonsterESP") then
+                        local hl = Instance.new("Highlight")
+                        hl.Name = "MonsterESP"
+                        hl.FillColor = Color3.fromRGB(255, 0, 0)
+                        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                        hl.Parent = v
                     end
-                    
-                    -- Kapı ESP
-                    if _G.Settings.DoorESP and (name == "Door" or name == "DoorWood") then
-                        if not v:FindFirstChild("MasterESP_Door") then
-                            local hl = Instance.new("Highlight")
-                            hl.Name = "MasterESP_Door"
-                            hl.FillColor = Color3.fromRGB(0, 255, 100)
-                            hl.OutlineColor = Color3.fromRGB(150, 255, 150)
-                            hl.Parent = v
-                        end
-                    elseif not _G.Settings.DoorESP then
-                        local esp = v:FindFirstChild("MasterESP_Door")
-                        if esp then esp:Destroy() end
-                    end
+                elseif not _G.Settings.EntityESP then
+                    local hl = v:FindFirstChild("MonsterESP")
+                    if hl then hl:Destroy() end
                 end
             end
         end)
@@ -677,8 +312,8 @@ task.spawn(function()
 end)
 
 Rayfield:Notify({
-   Title = "Doors Master Hub Aktif!",
-   Content = "Rayfield UI entegrasyonu başarıyla yüklendi.",
+   Title = "Doors AI Kuruldu!",
+   Content = "Bütün fonksiyonlar kapalı başlıyor. Çökme sorunu çözüldü.",
    Duration = 5,
    Image = 4483362458,
 })
