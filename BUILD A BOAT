@@ -1,0 +1,631 @@
+-- ==========================================================
+-- ⛵ BUILD A BOAT FOR TREASURE | God Prime Hub v6.0 ULTIMATE MOBILE
+-- 📱 Full Mobile Support | Pure BABFT Features | Smooth Farm & ESP
+-- ==========================================================
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local VirtualUser = game:GetService("VirtualUser")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+local Character, HumanoidRootPart, Humanoid, CurrentBoat
+
+-- ==========================================================
+-- ⚙️ GLOBAL AYARLAR VE DURUM MERKEZİ (BABFT ÖZEL)
+-- ==========================================================
+_G.GodPrimeBABFT = {
+    -- Oto Çiftlik & Döngü
+    AutoFarm = false,
+    FlightSpeed = 140,
+    AutoCollectChest = true,
+    AutoDailyReward = true,
+    FarmDelay = 3,
+    
+    -- Hareket & Uçuş
+    Noclip = true,
+    MobileFly = false,
+    FlySpeed = 100,
+    Speed = 16,
+    JumpPower = 50,
+    AntiVoid = true,
+    NoFallDamage = true,
+    
+    -- Tekne & Dünya Araçları
+    BoatGodMode = true,
+    AutoRepairBoat = false,
+    BoatSpeedBoost = false,
+    BoatSpeed = 50,
+    
+    -- Görseller & ESP
+    Fullbright = true,
+    ChestESP = false,
+    BoatESP = false,
+    StageESP = false,
+    XRay = false,
+    
+    -- Sistem & Güvenlik
+    AntiAFK = true,
+    AutoRejoin = true,
+    MobileControls = true,
+}
+
+-- Karakter ve Tekne Yönetimi
+local function updateCharacter(char)
+    Character = char
+    HumanoidRootPart = char:WaitForChild("HumanoidRootPart", 5)
+    Humanoid = char:WaitForChild("Humanoid", 5)
+    Camera.CameraSubject = Humanoid
+    
+    -- Oyuncunun teknesini tespit et
+    task.spawn(function()
+        task.wait(1.5)
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("Model") and (obj:FindFirstChild("Seat") or obj:FindFirstChild("Shipyard")) then
+                local weld = obj:FindFirstChildWhichIsA("Weld") or obj:FindFirstChildWhichIsA("Motor6D")
+                if weld and (weld.Part0 == HumanoidRootPart or weld.Part1 == HumanoidRootPart or obj:IsAncestorOf(Character)) then
+                    CurrentBoat = obj
+                    break
+                end
+            end
+        end
+    end)
+end
+
+updateCharacter(LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait())
+LocalPlayer.CharacterAdded:Connect(updateCharacter)
+
+-- ==========================================================
+-- 📱 MOBİL DOKUNMATİK KONTROLLER (BABFT ÖZEL TUŞLAR)
+-- ==========================================================
+local function createMobileControls()
+    if not UserInputService.TouchEnabled then return end
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "GodPrimeBABFTMobile"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    
+    -- Joystick (Sol Alt)
+    local joystickBase = Instance.new("Frame")
+    joystickBase.Name = "JoystickBase"
+    joystickBase.Size = UDim2.new(0, 120, 0, 120)
+    joystickBase.Position = UDim2.new(0, 20, 1, -140)
+    joystickBase.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    joystickBase.BackgroundTransparency = 0.4
+    joystickBase.BorderSizePixel = 0
+    joystickBase.Parent = screenGui
+    
+    local joystickCorner = Instance.new("UICorner")
+    joystickCorner.CornerRadius = UDim.new(1, 0)
+    joystickCorner.Parent = joystickBase
+    
+    local joystickStick = Instance.new("Frame")
+    joystickStick.Name = "JoystickStick"
+    joystickStick.Size = UDim2.new(0, 50, 0, 50)
+    joystickStick.Position = UDim2.new(0.5, -25, 0.5, -25)
+    joystickStick.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    joystickStick.BackgroundTransparency = 0.2
+    joystickStick.BorderSizePixel = 0
+    joystickStick.Parent = joystickBase
+    
+    local stickCorner = Instance.new("UICorner")
+    stickCorner.CornerRadius = UDim.new(1, 0)
+    stickCorner.Parent = joystickStick
+    
+    -- Action Buttons (Sağ Alt)
+    local buttonFrame = Instance.new("Frame")
+    buttonFrame.Name = "ActionButtons"
+    buttonFrame.Size = UDim2.new(0, 200, 0, 200)
+    buttonFrame.Position = UDim2.new(1, -220, 1, -220)
+    buttonFrame.BackgroundTransparency = 1
+    buttonFrame.Parent = screenGui
+    
+    local function createActionButton(name, pos, color, callback)
+        local btn = Instance.new("TextButton")
+        btn.Name = name
+        btn.Size = UDim2.new(0, 60, 0, 60)
+        btn.Position = pos
+        btn.BackgroundColor3 = color
+        btn.BackgroundTransparency = 0.2
+        btn.Text = name
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.TextSize = 13
+        btn.Font = Enum.Font.GothamBold
+        btn.BorderSizePixel = 0
+        btn.Parent = buttonFrame
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(1, 0)
+        corner.Parent = btn
+        
+        btn.MouseButton1Click:Connect(callback)
+        return btn
+    end
+    
+    createActionButton("FLY", UDim2.new(0, 0, 0, 0), Color3.fromRGB(0, 150, 255), function()
+        _G.GodPrimeBABFT.MobileFly = not _G.GodPrimeBABFT.MobileFly
+    end)
+    
+    createActionButton("JUMP", UDim2.new(0, 70, 0, 0), Color3.fromRGB(255, 150, 0), function()
+        if Humanoid then Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
+    end)
+    
+    createActionButton("NOCLIP", UDim2.new(0, 140, 0, 0), Color3.fromRGB(150, 0, 255), function()
+        _G.GodPrimeBABFT.Noclip = not _G.GodPrimeBABFT.Noclip
+    end)
+    
+    createActionButton("FARM", UDim2.new(0, 0, 0, 70), Color3.fromRGB(0, 255, 0), function()
+        _G.GodPrimeBABFT.AutoFarm = not _G.GodPrimeBABFT.AutoFarm
+    end)
+    
+    createActionButton("ESP", UDim2.new(0, 70, 0, 70), Color3.fromRGB(255, 255, 0), function()
+        _G.GodPrimeBABFT.ChestESP = not _G.GodPrimeBABFT.ChestESP
+        _G.GodPrimeBABFT.BoatESP = not _G.GodPrimeBABFT.BoatESP
+    end)
+    
+    createActionButton("END", UDim2.new(0, 140, 0, 70), Color3.fromRGB(255, 50, 50), function()
+        if HumanoidRootPart then HumanoidRootPart.CFrame = CFrame.new(-50, 50, 9465) end
+    end)
+    
+    -- Joystick Dokunma Mantığı
+    local joystickActive = false
+    local joystickCenter = Vector2.new()
+    
+    joystickBase.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            joystickActive = true
+            joystickCenter = Vector2.new(joystickBase.AbsolutePosition.X + 60, joystickBase.AbsolutePosition.Y + 60)
+        end
+    end)
+    
+    joystickBase.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            joystickActive = false
+            joystickStick.Position = UDim2.new(0.5, -25, 0.5, -25)
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch and joystickActive then
+            local touchPos = Vector2.new(input.Position.X, input.Position.Y)
+            local diff = touchPos - joystickCenter
+            local maxDist = 60
+            
+            if diff.Magnitude > maxDist then
+                diff = diff.Unit * maxDist
+            end
+            
+            joystickStick.Position = UDim2.new(0, 35 + diff.X, 0, 35 + diff.Y)
+            
+            if _G.GodPrimeBABFT.MobileFly and HumanoidRootPart then
+                local moveVector = Vector3.new(diff.X / maxDist, 0, diff.Y / maxDist)
+                local cameraRight = Camera.CFrame.RightVector
+                local cameraForward = Camera.CFrame.LookVector
+                local direction = (cameraForward * moveVector.Z) + (cameraRight * moveVector.X)
+                if direction.Magnitude > 0 then
+                    direction = direction.Unit
+                    HumanoidRootPart.AssemblyLinearVelocity = direction * _G.GodPrimeBABFT.FlySpeed
+                end
+            end
+        end
+    end)
+end
+
+task.spawn(createMobileControls)
+
+-- ==========================================================
+-- 📦 BABFT ESP VE GÖRSEL SİSTEMLERİ
+-- ==========================================================
+local function addChestESP(obj)
+    if (obj.Name == "TreasureChest" or obj.Name == "GoldChest") and not obj:FindFirstChild("BabftChestESP") then
+        local hl = Instance.new("Highlight")
+        hl.Name = "BabftChestESP"
+        hl.FillColor = Color3.fromRGB(255, 215, 0)
+        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+        hl.FillTransparency = 0.4
+        hl.Parent = obj
+        
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "ChestTag"
+        billboard.Size = UDim2.new(0, 120, 0, 35)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = obj
+        
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Text = "💰 Hazine Sandığı"
+        label.TextColor3 = Color3.fromRGB(255, 215, 0)
+        label.TextStrokeTransparency = 0
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 14
+        label.Parent = billboard
+    end
+end
+
+local function addBoatESP(boat)
+    if not boat:FindFirstChild("BabftBoatESP") then
+        local hl = Instance.new("Highlight")
+        hl.Name = "BabftBoatESP"
+        hl.FillColor = Color3.fromRGB(0, 200, 255)
+        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+        hl.FillTransparency = 0.6
+        hl.Parent = boat
+    end
+end
+
+local function toggleChestESP(state)
+    _G.GodPrimeBABFT.ChestESP = state
+    if state then
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj.Name == "TreasureChest" or obj.Name == "GoldChest" then addChestESP(obj) end
+        end
+    else
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            local esp = obj:FindFirstChild("BabftChestESP") or obj:FindFirstChild("ChestTag")
+            if esp then esp:Destroy() end
+        end
+    end
+end
+
+local function toggleBoatESP(state)
+    _G.GodPrimeBABFT.BoatESP = state
+    if state then
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("Model") and (obj:FindFirstChild("Seat") or obj:FindFirstChild("Shipyard")) then addBoatESP(obj) end
+        end
+    else
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            local esp = obj:FindFirstChild("BabftBoatESP")
+            if esp then esp:Destroy() end
+        end
+    end
+end
+
+local function toggleXRay(state)
+    _G.GodPrimeBABFT.XRay = state
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and not obj:IsDescendantOf(Character) then
+            obj.Transparency = state and 0.6 or 0
+        end
+    end
+end
+
+Workspace.DescendantAdded:Connect(function(obj)
+    if _G.GodPrimeBABFT.ChestESP and (obj.Name == "TreasureChest" or obj.Name == "GoldChest") then
+        addChestESP(obj)
+    end
+    if _G.GodPrimeBABFT.BoatESP and obj:IsA("Model") and obj:FindFirstChild("Seat") then
+        addBoatESP(obj)
+    end
+end)
+
+-- Fullbright Ayarı
+local function toggleFullbright(state)
+    _G.GodPrimeBABFT.Fullbright = state
+    if state then
+        Lighting.Brightness = 3
+        Lighting.ClockTime = 14
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 100000
+        Lighting.OutdoorAmbient = Color3.fromRGB(150, 150, 150)
+    else
+        Lighting.Brightness = 1
+        Lighting.ClockTime = 12
+        Lighting.GlobalShadows = true
+        Lighting.FogEnd = 1000
+    end
+end
+toggleFullbright(true)
+
+-- ==========================================================
+-- 🚀 ANA MOTOR (RenderStepped & Heartbeat)
+-- ==========================================================
+RunService.RenderStepped:Connect(function(dt)
+    -- Noclip
+    if _G.GodPrimeBABFT.Noclip and Character then
+        for _, part in ipairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end
+
+    local root = Character and Character:FindFirstChild("HumanoidRootPart")
+    local hum = Character and Character:FindFirstChildOfClass("Humanoid")
+    if not root or not hum then return end
+
+    -- Mobil Uçuş / Fizik Güncellemesi
+    if _G.GodPrimeBABFT.MobileFly then
+        hum.PlatformStand = true
+        root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+    else
+        hum.PlatformStand = false
+    end
+
+    -- Hız ve Zıplama
+    hum.WalkSpeed = _G.GodPrimeBABFT.Speed
+    hum.JumpPower = _G.GodPrimeBABFT.JumpPower
+
+    -- Oto Çiftlik & Süzülerek Bölüm Geçme (Auto Farm)
+    if _G.GodPrimeBABFT.AutoFarm and not _G.GodPrimeBABFT.MobileFly then
+        pcall(function()
+            local targetPos = Vector3.new(-50, 70, 9465)
+            local currentPos = root.Position
+            local distance = (currentPos - targetPos).Magnitude
+
+            if distance > 15 then
+                local direction = (targetPos - currentPos).Unit
+                local step = direction * math.min(_G.GodPrimeBABFT.FlightSpeed * dt, distance)
+                root.CFrame = CFrame.new(currentPos + step, targetPos)
+                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            else
+                -- Sandığı otomatik bul ve dokun
+                if _G.GodPrimeBABFT.AutoCollectChest then
+                    for _, obj in ipairs(Workspace:GetDescendants()) do
+                        if obj.Name == "TreasureChest" or obj.Name == "GoldChest" then
+                            local part = obj:FindFirstChildWhichIsA("BasePart")
+                            if part then
+                                root.CFrame = part.CFrame * CFrame.new(0, 4, 0)
+                                task.wait(0.6)
+                                break
+                            end
+                        end
+                    end
+                end
+                
+                task.wait(_G.GodPrimeBABFT.FarmDelay)
+                root.CFrame = CFrame.new(-50, 50, -60) -- Başlangıç bölgesine dön
+                task.wait(2)
+            end
+        end)
+    end
+
+    -- Anti-Void (Harita altına düşmeyi engelle)
+    if _G.GodPrimeBABFT.AntiVoid and root.Position.Y < -50 then
+        root.CFrame = CFrame.new(-50, 100, -60)
+    end
+end)
+
+-- Tekne Koruma ve Hız Hileleri
+RunService.Heartbeat:Connect(function()
+    if _G.GodPrimeBABFT.BoatGodMode and CurrentBoat then
+        for _, part in ipairs(CurrentBoat:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+    
+    -- Otomatik Tekne Tamir (Hasar gören parçaları şeffaflıktan kurtar)
+    if _G.GodPrimeBABFT.AutoRepairBoat and CurrentBoat then
+        for _, part in ipairs(CurrentBoat:GetDescendants()) do
+            if part:IsA("BasePart") and part.Transparency > 0 then
+                part.Transparency = 0
+            end
+        end
+    end
+end)
+
+-- Anti-AFK
+task.spawn(function()
+    while _G.GodPrimeBABFT.AntiAFK do
+        task.wait(50)
+        pcall(function()
+            VirtualUser:Button2Down(Vector2.new(0,0), Camera.CFrame)
+            task.wait(1)
+            VirtualUser:Button2Up(Vector2.new(0,0), Camera.CFrame)
+        end)
+    end
+end)
+
+-- ==========================================================
+-- 🎨 RAYFIELD UI KODU (BABFT ÖZEL ARAYÜZ)
+-- ==========================================================
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "⛵ BABFT | God Prime Hub v6.0 MOBILE",
+    LoadingTitle = "Build a Boat Sistemleri Yükleniyor...",
+    LoadingSubtitle = "📱 Akıcı Oto Çiftlik & Mobil Kontroller",
+    ConfigurationSaving = { Enabled = true, FolderName = "GodPrimeBABFT", FileName = "babft_config.json" },
+    Discord = { Enabled = false },
+    KeySystem = false
+})
+
+-- TAB 1: OTO ÇİFTLİK (AUTO FARM)
+local FarmTab = Window:CreateTab("🤖 Oto Çiftlik", 4483362458)
+
+FarmTab:CreateSection("💰 Akıllı Altın Kazanma Döngüsü")
+FarmTab:CreateToggle({
+    Name = "🤖 Auto Smooth Farm (Süzülerek Git)",
+    CurrentValue = false,
+    Callback = function(v) _G.GodPrimeBABFT.AutoFarm = v end
+})
+FarmTab:CreateToggle({
+    Name = "📦 Otomatik Hazine Sandığı Topla",
+    CurrentValue = true,
+    Callback = function(v) _G.GodPrimeBABFT.AutoCollectChest = v end
+})
+FarmTab:CreateSlider({
+    Name = "🚀 Süzülme / Uçuş Hızı",
+    Range = {60, 300}, Increment = 10, CurrentValue = 140,
+    Callback = function(v) _G.GodPrimeBABFT.FlightSpeed = v end
+})
+FarmTab:CreateSlider({
+    Name = "⏱️ Tur Bekleme Süresi (Saniye)",
+    Range = {1, 10}, Increment = 1, CurrentValue = 3,
+    Callback = function(v) _G.GodPrimeBABFT.FarmDelay = v end
+})
+
+-- TAB 2: HAREKET & UÇUŞ
+local MoveTab = Window:CreateTab("🏃 Hareket", 4483362458)
+
+MoveTab:CreateSection("✈️ Uçuş & Fizik")
+MoveTab:CreateToggle({
+    Name = "📱 Mobil Free Fly (Uçuş Modu)",
+    CurrentValue = false,
+    Callback = function(v) _G.GodPrimeBABFT.MobileFly = v end
+})
+MoveTab:CreateSlider({
+    Name = "🚀 Serbest Uçuş Hızı",
+    Range = {50, 400}, Increment = 10, CurrentValue = 100,
+    Callback = function(v) _G.GodPrimeBABFT.FlySpeed = v end
+})
+MoveTab:CreateToggle({
+    Name = "👻 Noclip (Duvarlardan Geçme)",
+    CurrentValue = true,
+    Callback = function(v) _G.GodPrimeBABFT.Noclip = v end
+})
+MoveTab:CreateToggle({
+    Name = "🕳️ Anti-Void (Boşluğa Düşmeyi Önle)",
+    CurrentValue = true,
+    Callback = function(v) _G.GodPrimeBABFT.AntiVoid = v end
+})
+
+MoveTab:CreateSection("⚡ Karakter Hızı")
+MoveTab:CreateSlider({
+    Name = "🚶 Yürüyüş Hızı",
+    Range = {16, 200}, Increment = 1, CurrentValue = 16,
+    Callback = function(v) _G.GodPrimeBABFT.Speed = v end
+})
+MoveTab:CreateSlider({
+    Name = "🦘 Zıplama Gücü",
+    Range = {50, 400}, Increment = 5, CurrentValue = 50,
+    Callback = function(v) _G.GodPrimeBABFT.JumpPower = v end
+})
+
+-- TAB 3: TEKNE ARAÇLARI (BOAT TOOLS)
+local BoatTab = Window:CreateTab("⛵ Tekne Araçları", 4483362458)
+
+BoatTab:CreateSection("🛠️ Tekne Geliştirmeleri")
+BoatTab:CreateToggle({
+    Name = "⛵ Tekne God Mode (Çarpışmasız & Güvenli)",
+    CurrentValue = true,
+    Callback = function(v) _G.GodPrimeBABFT.BoatGodMode = v end
+})
+BoatTab:CreateToggle({
+    Name = "🔧 Otomatik Tekne Parça Tamiri",
+    CurrentValue = false,
+    Callback = function(v) _G.GodPrimeBABFT.AutoRepairBoat = v end
+})
+BoatTab:CreateButton({
+    Name = "🔄 Takım Değiştir (Rastgele Takım)",
+    Callback = function()
+        pcall(function()
+            local teams = game:GetService("Teams"):GetTeams()
+            if #teams > 0 then
+                ReplicatedStorage.Remotes.TeamChosen:FireServer(teams[math.random(1, #teams)].Name)
+            end
+        end)
+    end
+})
+
+-- TAB 4: IŞINLANMA (TELEPORTS)
+local TeleportTab = Window:CreateTab("🎯 Işınlanma", 4483362458)
+
+TeleportTab:CreateSection("📍 Harita Konumları")
+TeleportTab:CreateButton({
+    Name = "🏁 Hazine Odası (Bitiş Çizgisi)",
+    Callback = function() if HumanoidRootPart then HumanoidRootPart.CFrame = CFrame.new(-50, 50, 9465) end end
+})
+TeleportTab:CreateButton({
+    Name = "🏠 Başlangıç Bölgesi (Takım Seçme)",
+    Callback = function() if HumanoidRootPart then HumanoidRootPart.CFrame = CFrame.new(-50, 50, -60) end end
+})
+TeleportTab:CreateButton({
+    Name = "🛒 Dükkan (Shop)",
+    Callback = function() if HumanoidRootPart then HumanoidRootPart.CFrame = CFrame.new(-200, 50, -150) end end
+})
+
+TeleportTab:CreateSection("🛤️ Aşamalar (Stages 1-10)")
+for i = 1, 10 do
+    TeleportTab:CreateButton({
+        Name = "Aşama " .. i .. " Konumuna Git",
+        Callback = function()
+            if HumanoidRootPart then
+                HumanoidRootPart.CFrame = CFrame.new(-50, 50, i * 900)
+            end
+        end
+    })
+end
+
+-- TAB 5: GÖRSEL & ESP
+local VisualsTab = Window:CreateTab("👁️ Görsel & ESP", 4483362458)
+
+VisualsTab:CreateSection("💡 Çevre Işıklandırması")
+VisualsTab:CreateToggle({
+    Name = "💡 Fullbright (Karanlığı Kaldır)",
+    CurrentValue = true,
+    Callback = function(v) toggleFullbright(v) end
+})
+VisualsTab:CreateToggle({
+    Name = "🔍 X-Ray (Duvarları Şeffaf Yap)",
+    CurrentValue = false,
+    Callback = function(v) toggleXRay(v) end
+})
+
+VisualsTab:CreateSection("📦 BABFT ESP Sistemleri")
+VisualsTab:CreateToggle({
+    Name = "💰 Hazine Sandığı ESP",
+    CurrentValue = false,
+    Callback = function(v) toggleChestESP(v) end
+})
+VisualsTab:CreateToggle({
+    Name = "⛵ Tekne (Boat) ESP",
+    CurrentValue = false,
+    Callback = function(v) toggleBoatESP(v) end
+})
+
+-- TAB 6: SİSTEM
+local SystemTab = Window:CreateTab("⚙️ Sistem", 4483362458)
+
+SystemTab:CreateSection("🛡️ Güvenlik Araçları")
+SystemTab:CreateToggle({
+    Name = "🚫 Anti-AFK (Oyundan Atılmayı Önle)",
+    CurrentValue = true,
+    Callback = function(v) _G.GodPrimeBABFT.AntiAFK = v end
+})
+SystemTab:CreateToggle({
+    Name = "🔁 Auto Rejoin (Sunucu Çökmesinde Gir)",
+    CurrentValue = true,
+    Callback = function(v) _G.GodPrimeBABFT.AutoRejoin = v end
+})
+
+SystemTab:CreateSection("🛠️ Sunucu Kontrolleri")
+SystemTab:CreateButton({
+    Name = "🔄 Sunucuyu Yeniden Başlat (Rejoin)",
+    Callback = function() TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer) end
+})
+SystemTab:CreateButton({
+    Name = "🌐 Farklı Sunucuya Geç (Server Hop)",
+    Callback = function()
+        local url = string.format("https://games.rproxy.works/v1/games/%d/servers/Public?sortOrder=Asc&limit=100", game.PlaceId)
+        local success, result = pcall(function()
+            return HttpService:JSONDecode(game:HttpGet(url))
+        end)
+        if success and result.data then
+            for _, s in ipairs(result.data) do
+                if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                    TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, LocalPlayer)
+                    break
+                end
+            end
+        end
+    end
+})
+
+-- Bildirim
+Rayfield:Notify({
+    Title = "BABFT God Prime Hub v6.0 Aktif!",
+    Content = "📱 Mobil uyumlu joystick, süzülme oto-çiftliği ve özel ESP yüklendi.",
+    Duration = 7, Image = 4483362458
+})
+
