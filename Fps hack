@@ -1,5 +1,5 @@
 -- ==========================================================
--- FPS ULTIMATE HUB | ALL-IN-ONE | v3.0 (Final Edition)
+-- MM2 STYLED FPS ULTIMATE HUB | ALL-IN-ONE | v5.0 (Final)
 -- ==========================================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -7,22 +7,73 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
-local Lighting = game:GetService("Lighting")
 local Camera = Workspace.CurrentCamera
 
--- 1. ESKİLERİ TEMİZLE
+-- Önce eski arayüzleri temizle
 for _, v in pairs(CoreGui:GetChildren()) do
-    if v.Name:find("FPSPro") then v:Destroy() end
+    if v.Name:find("FPSPro") or v.Name:find("MM2ProHub") then v:Destroy() end
 end
 
--- 2. GLOBAL VERİ VE HEDEF BULUCU
-_G.Settings = {
-    Aimbot = false, ESP = false, InfJump = false, 
-    RapidFire = false, Noclip = false, FullBright = false, 
-    HitboxExpand = false
-}
+-- ==========================================================
+-- 1. MM2 STİL ARAYÜZ (GUI)
+-- ==========================================================
+local ScreenGui = Instance.new("ScreenGui", CoreGui)
+ScreenGui.Name = "MM2ProHub"
 
--- Botlar dahil tüm düşmanları bulur
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 240, 0, 500)
+MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- MM2 Koyu Tema
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.Text = "FPS ULTIMATE HUB"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.BackgroundColor3 = Color3.fromRGB(0, 120, 255) -- MM2 Mavi Başlık
+Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 10)
+
+local Container = Instance.new("ScrollingFrame", MainFrame)
+Container.Size = UDim2.new(1, 0, 1, -50)
+Container.Position = UDim2.new(0, 0, 0, 50)
+Container.BackgroundTransparency = 1
+Container.CanvasSize = UDim2.new(0, 0, 2, 0)
+Container.ScrollBarThickness = 4
+
+-- ==========================================================
+-- 2. ÖZELLİKLER VE AYARLAR
+-- ==========================================================
+_G.Settings = { Aimbot = false, ESP = false, Noclip = false, RapidFire = false, InfJump = false, HitboxExpand = false }
+
+local function AddToggle(name, setting)
+    local btn = Instance.new("TextButton", Container)
+    btn.Size = UDim2.new(0.9, 0, 0, 45)
+    btn.Position = UDim2.new(0.05, 0, 0, #Container:GetChildren() * 50)
+    btn.Text = name .. " [OFF]"
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50) -- MM2 Buton Rengi
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    
+    btn.MouseButton1Click:Connect(function()
+        _G.Settings[setting] = not _G.Settings[setting]
+        btn.Text = name .. (_G.Settings[setting] and " [ON]" or " [OFF]")
+        btn.BackgroundColor3 = _G.Settings[setting] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(50, 50, 50)
+    end)
+end
+
+AddToggle("Aimbot (Botlar Dahil)", "Aimbot")
+AddToggle("ESP (Botlar Dahil)", "ESP")
+AddToggle("Noclip", "Noclip")
+AddToggle("Rapid Fire", "RapidFire")
+AddToggle("Inf Jump (Fix)", "InfJump")
+AddToggle("Hitbox Expand", "HitboxExpand")
+
+-- ==========================================================
+-- 3. MOTORLAR
+-- ==========================================================
 local function GetAllTargets()
     local targets = {}
     for _, v in pairs(Workspace:GetDescendants()) do
@@ -35,76 +86,20 @@ local function GetAllTargets()
     return targets
 end
 
--- ==========================================================
--- 3. ARAYÜZ (GUI)
--- ==========================================================
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "FPSProHub"
-
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 220, 0, 450)
-MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.Active = true
-MainFrame.Draggable = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
-
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "ULTIMATE FPS HUB"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.GothamBold
-Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-
-local Container = Instance.new("ScrollingFrame", MainFrame)
-Container.Size = UDim2.new(1, 0, 1, -40)
-Container.Position = UDim2.new(0, 0, 0, 40)
-Container.BackgroundTransparency = 1
-Container.CanvasSize = UDim2.new(0, 0, 2, 0)
-
-local function AddButton(name, setting)
-    local btn = Instance.new("TextButton", Container)
-    btn.Size = UDim2.new(0.9, 0, 0, 40)
-    btn.Position = UDim2.new(0.05, 0, 0, #Container:GetChildren() * 45)
-    btn.Text = name .. ": OFF"
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-    
-    btn.MouseButton1Click:Connect(function()
-        _G.Settings[setting] = not _G.Settings[setting]
-        btn.Text = name .. ": " .. (_G.Settings[setting] and "ON" or "OFF")
-        btn.BackgroundColor3 = _G.Settings[setting] and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(50, 50, 50)
-    end)
-end
-
--- Menüleri Ekle
-AddButton("Aimbot (Botlar Dahil)", "Aimbot")
-AddButton("ESP (Botlar Dahil)", "ESP")
-AddButton("Noclip", "Noclip")
-AddButton("Rapid Fire", "RapidFire")
-AddButton("Inf Jump (Fix)", "InfJump")
-AddButton("FullBright", "FullBright")
-AddButton("Hitbox Expand", "HitboxExpand")
-
--- ==========================================================
--- 4. MODÜLLER
--- ==========================================================
-
 -- Aimbot Motoru
 RunService.RenderStepped:Connect(function()
     if _G.Settings.Aimbot then
-        local closestTarget = nil
-        local shortestDist = math.huge
-        local mousePos = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+        local closest = nil
+        local dist = math.huge
+        local mouse = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
         for _, hrp in pairs(GetAllTargets()) do
-            local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+            local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
             if onScreen then
-                local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                if dist < shortestDist then shortestDist = dist; closestTarget = hrp end
+                local mag = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
+                if mag < dist then dist = mag; closest = hrp end
             end
         end
-        if closestTarget then Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestTarget.Position) end
+        if closest then Camera.CFrame = CFrame.new(Camera.CFrame.Position, closest.Position) end
     end
 end)
 
@@ -123,16 +118,13 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Noclip
+-- Diğer Modüller
 RunService.Stepped:Connect(function()
     if _G.Settings.Noclip and LocalPlayer.Character then
-        for _, p in pairs(LocalPlayer.Character:GetDescendants()) do
-            if p:IsA("BasePart") then p.CanCollide = false end
-        end
+        for _, p in pairs(LocalPlayer.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
     end
 end)
 
--- Rapid Fire (Taramalı)
 RunService.Heartbeat:Connect(function()
     if _G.Settings.RapidFire and LocalPlayer.Character then
         local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
@@ -140,20 +132,12 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Inf Jump (Fixed)
 UserInputService.JumpRequest:Connect(function()
     if _G.Settings.InfJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
 
--- FullBright
-RunService.RenderStepped:Connect(function()
-    Lighting.Brightness = _G.Settings.FullBright and 2 or 1
-    Lighting.GlobalShadows = not _G.Settings.FullBright
-end)
-
--- Hitbox Expand
 RunService.Heartbeat:Connect(function()
     if _G.Settings.HitboxExpand then
         for _, hrp in pairs(GetAllTargets()) do
@@ -164,4 +148,4 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-print("FPS Ultimate Hub v3.0 Başarıyla Yüklendi!")
+print("MM2 Stili FPS Hub v5.0 Yüklendi!")
