@@ -1,0 +1,370 @@
+--[[
+    ====================================================================
+    [ 99 NIGHTS IN THE FOREST - ABSOLUTE GOD-TIER OMEGA SCRIPT HUB ]
+    - Tamamen Kapsamlı, Eksiksiz ve En Üst Düzey Optimizasyon Sürümü
+    - Tüm Sistemler, Biyom Mantıkları ve Özel İstekler Entegre Edilmiştir
+    - Geliştirici: Usplaxcl Özel Versiyon
+    ====================================================================
+]]
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local CoreGui = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
+
+-- Rayfield UI Kütüphanesini Güvenli Yükleme
+local Success, Rayfield = pcall(function()
+    return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+end)
+
+if not Success or not Rayfield then
+    warn("Rayfield UI yüklenemedi!")
+    return
+end
+
+local Window = Rayfield:CreateWindow({
+    Name = "🌲 99 Nights in the Forest | Omega God-Tier Hub",
+    LoadingTitle = "Omega Sürümü Yükleniyor...",
+    LoadingSubtitle = "Tüm Anatomi ve Sistemler Eksiksiz Entegre Edildi",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "OmegaHub99Nights",
+        FileName = "MasterConfig"
+    },
+    KeySystem = false,
+})
+
+-- Sekmeler
+local TabCamp = Window:CreateTab("🔥 Kamp & İstatistikler", 4483362458)
+local TabRescue = Window:CreateTab("👶 Çocuk & Loot Otomasyonu", 4483362458)
+local TabCombat = Window:CreateTab("⚔️ Savaş & Kill Aura", 4483362458)
+local TabEsp = Window:CreateTab("👁️ ESP & Gelişmiş Görüş", 4483362458)
+local TabWorld = Window:CreateTab("🌍 Dünya & Meta Kontrolü", 4483362458)
+
+--------------------------------------------------------------------------------
+-- 1. KAMP ATEŞİ VE İSTATİSTİKLER (CAMP & STATS TAB)
+--------------------------------------------------------------------------------
+
+TabCamp:CreateSection("Kamp Ateşi Otomasyonu (Max Ateş)")
+
+TabCamp:CreateToggle({
+    Name = "Kamp Ateşini Sürekli Max/Full Tut (Auto-Max Campfire)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.AutoMaxFire = Value
+        task.spawn(function()
+            while _G.AutoMaxFire do
+                task.wait(0.3)
+                pcall(function()
+                    for _, obj in pairs(Workspace:GetDescendants()) do
+                        if obj.Name:lower():find("campfire") or obj.Name:lower():find("fire") then
+                            if obj:FindFirstChild("Fuel") then obj.Fuel.Value = 99999 end
+                            if obj:FindFirstChild("Health") then obj.Health.Value = obj.MaxHealth.Value end
+                            for _, child in pairs(obj:GetDescendants()) do
+                                if child:IsA("RemoteEvent") then child:FireServer("Feed", 9999) end
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end,
+})
+
+TabCamp:CreateSection("Hayatta Kalma İstatistikleri (God Stats)")
+
+TabCamp:CreateToggle({
+    Name = "Sınırsız Açlık, Susuzluk & Sanity (Sabitleme)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.GodStats = Value
+        task.spawn(function()
+            while _G.GodStats do
+                task.wait(0.1)
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("Humanoid") then
+                        char.Humanoid.Health = char.Humanoid.MaxHealth
+                    end
+                    if LocalPlayer:FindFirstChild("PlayerStats") then
+                        if LocalPlayer.PlayerStats:FindFirstChild("Hunger") then LocalPlayer.PlayerStats.Hunger.Value = 100 end
+                        if LocalPlayer.PlayerStats:FindFirstChild("Thirst") then LocalPlayer.PlayerStats.Thirst.Value = 100 end
+                        if LocalPlayer.PlayerStats:FindFirstChild("Sanity") then LocalPlayer.PlayerStats.Sanity.Value = 100 end
+                    end
+                end)
+            end
+        end)
+    end,
+})
+
+--------------------------------------------------------------------------------
+-- 2. ÇOCUK KURTARMA VE SANDIK OTOMASYONU (RESCUE TAB)
+--------------------------------------------------------------------------------
+
+TabRescue:CreateSection("Kayıp Çocuk Kurtarma (Dino, Kraken, Squid, Koala)")
+
+TabRescue:CreateButton({
+    Name = "👶 Tüm Kayıp Çocukları Kamp Ateşine Işınla",
+    Callback = function()
+        pcall(function()
+            local campfirePos = nil
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if (obj.Name:lower():find("campfire") or obj.Name:lower():find("fire")) and obj:IsA("BasePart") then
+                    campfirePos = obj.Position
+                    break
+                end
+            end
+            if not campfirePos then campfirePos = LocalPlayer.Character.HumanoidRootPart.Position end
+
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if obj.Name:lower():find("child") or obj.Name:lower():find("kid") then
+                    if obj:FindFirstChild("HumanoidRootPart") then
+                        obj.HumanoidRootPart.CFrame = CFrame.new(campfirePos + Vector3.new(math.random(-3, 3), 2, math.random(-3, 3)))
+                    elseif obj:IsA("Model") and obj.PrimaryPart then
+                        obj:SetPrimaryPartCFrame(CFrame.new(campfirePos + Vector3.new(math.random(-3, 3), 2, math.random(-3, 3))))
+                    end
+                end
+            end
+        end)
+        Rayfield:Notify({Title = "Başarılı", Content = "Bütün kayıp çocuklar kamp ateşinin yanına çekildi!", Duration = 3})
+    end,
+})
+
+TabRescue:CreateSection("Sandık ve Loot Toplama Zinciri")
+
+TabRescue:CreateButton({
+    Name = "📦 Tüm Sandıkları (Ruby, Iron, Common) Yanına Çek & Otomatik Aç",
+    Callback = function()
+        pcall(function()
+            local char = LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if obj.Name:lower():find("chest") or obj.Name:lower():find("box") or obj.Name:lower():find("loot") then
+                    if obj:IsA("Model") and obj.PrimaryPart then
+                        obj:SetPrimaryPartCFrame(hrp.CFrame + Vector3.new(math.random(-4, 4), 1, math.random(-4, 4)))
+                    elseif obj:IsA("BasePart") then
+                        obj.CFrame = hrp.CFrame + Vector3.new(math.random(-4, 4), 1, math.random(-4, 4))
+                    end
+                    
+                    for _, child in pairs(obj:GetDescendants()) do
+                        if child:IsA("ProximityPrompt") then
+                            fireproximityprompt(child)
+                        elseif child:IsA("RemoteEvent") then
+                            child:FireServer()
+                        end
+                    end
+                end
+            end
+        end)
+        Rayfield:Notify({Title = "Loot Toplandı", Content = "Tüm sandıklar ayağına getirildi ve açıldı!", Duration = 3})
+    end,
+})
+
+--------------------------------------------------------------------------------
+-- 3. SAVAŞ VE KILL AURA (COMBAT TAB)
+--------------------------------------------------------------------------------
+
+TabCombat:CreateSection("Ölümsüzlük ve Savunma")
+
+TabCombat:CreateToggle({
+    Name = "Ölümsüzlük (GodMode - Can Asla Düşmez)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.GodMode = Value
+        task.spawn(function()
+            while _G.GodMode do
+                task.wait(0.05)
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("Humanoid") then
+                        char.Humanoid.Health = char.Humanoid.MaxHealth
+                    end
+                end)
+            end
+        end)
+    end,
+})
+
+TabCombat:CreateSection("İmha Edici Kill Aura & Hitbox")
+
+TabCombat:CreateToggle({
+    Name = "⚡ Mega Kill Aura (Kurtlar, Ayılar, Kültistler & Bat)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.MegaAura = Value
+        task.spawn(function()
+            while _G.MegaAura do
+                task.wait(0.1)
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        for _, enemy in pairs(Workspace:GetChildren()) do
+                            if enemy ~= char and (enemy:FindFirstChild("Humanoid") or enemy:FindFirstChild("HumanoidRootPart")) then
+                                local enemyHrp = enemy:FindFirstChild("HumanoidRootPart") or enemy.PrimaryPart
+                                if enemyHrp then
+                                    local dist = (hrp.Position - enemyHrp.Position).Magnitude
+                                    if dist < 50 then
+                                        firetouchinterest(hrp, enemyHrp, 0)
+                                        firetouchinterest(hrp, enemyHrp, 1)
+                                        if enemy:FindFirstChild("Humanoid") then
+                                            enemy.Humanoid.Health = 0
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end,
+})
+
+TabCombat:CreateToggle({
+    Name = "Düşman Hitbox Genişletici (Koca Kafalar)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.Hitbox = Value
+        RunService.RenderStepped:Connect(function()
+            if _G.Hitbox then
+                for _, v in pairs(Players:GetPlayers()) do
+                    if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                        v.Character.HumanoidRootPart.Size = Vector3.new(12, 12, 12)
+                        v.Character.HumanoidRootPart.Transparency = 0.6
+                        v.Character.HumanoidRootPart.CanCollide = false
+                    end
+                end
+            end
+        end)
+    end,
+})
+
+--------------------------------------------------------------------------------
+-- 4. ESP VE GÖRÜŞ SİSTEMLERİ (ESP TAB)
+--------------------------------------------------------------------------------
+
+TabEsp:CreateSection("Varlık ve Tehdit Takibi")
+
+TabEsp:CreateToggle({
+    Name = "Canavar & Deer (Geyik) ESP (Kırmızı Vurgu)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.MobESP = Value
+        task.spawn(function()
+            while _G.MobESP do
+                task.wait(1)
+                pcall(function()
+                    for _, obj in pairs(Workspace:GetChildren()) do
+                        if obj:FindFirstChild("Humanoid") and obj ~= LocalPlayer.Character then
+                            if not obj:FindFirstChild("Highlight") then
+                                local hl = Instance.new("Highlight", obj)
+                                hl.FillColor = Color3.fromRGB(255, 0, 0)
+                                hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end,
+})
+
+TabEsp:CreateToggle({
+    Name = "Kayıp Çocuklar ESP (Yeşil Vurgu)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.KidESP = Value
+        task.spawn(function()
+            while _G.KidESP do
+                task.wait(1)
+                pcall(function()
+                    for _, obj in pairs(Workspace:GetDescendants()) do
+                        if obj.Name:lower():find("child") or obj.Name:lower():find("kid") then
+                            if not obj:FindFirstChild("Highlight") then
+                                local hl = Instance.new("Highlight", obj)
+                                hl.FillColor = Color3.fromRGB(0, 255, 0)
+                                hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end,
+})
+
+--------------------------------------------------------------------------------
+-- 5. DÜNYA VE META KONTROLÜ (WORLD TAB)
+--------------------------------------------------------------------------------
+
+TabWorld:CreateSection("Kaynak Yönetimi ve Hava Kontrolü")
+
+TabWorld:CreateButton({
+    Name = "🪵 Haritadaki Tüm Odun, Kütük ve Scrap'leri Ateşe Yığ",
+    Callback = function()
+        pcall(function()
+            local campfirePos = nil
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if (obj.Name:lower():find("campfire") or obj.Name:lower():find("fire")) and obj:IsA("BasePart") then
+                    campfirePos = obj.Position
+                    break
+                end
+            end
+            if not campfirePos then campfirePos = LocalPlayer.Character.HumanoidRootPart.Position end
+
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and (obj.Name:lower():find("wood") or obj.Name:lower():find("log") or obj.Name:lower():find("scrap")) then
+                    obj.CFrame = CFrame.new(campfirePos + Vector3.new(math.random(-3, 3), 1, math.random(-3, 3)))
+                end
+            end
+        end)
+        Rayfield:Notify({Title = "Kaynaklar Taşındı", Content = "Tüm odunlar ve scrap malzemeleri ateşe yığıldı!", Duration = 3})
+    end,
+})
+
+TabWorld:CreateToggle({
+    Name = "Sisi Kaldır & Full Gece Görüşü (Fullbright)",
+    CurrentValue = false,
+    Callback = function(Value)
+        pcall(function()
+            if Value then
+                Workspace.CurrentCamera.FieldOfView = 95
+                Lighting.Brightness = 3
+                Lighting.ClockTime = 14
+                for _, v in pairs(Lighting:GetChildren()) do
+                    if v:IsA("Atmosphere") or v:IsA("Fog") then v.Parent = nil end
+                end
+            else
+                Lighting.Brightness = 1
+                Lighting.ClockTime = 0
+            end
+        end)
+    end,
+})
+
+TabWorld:CreateToggle({
+    Name = "Süper Koşma Hızı (WalkSpeed 48)",
+    CurrentValue = false,
+    Callback = function(Value)
+        _G.SuperSpeed = Value
+        task.spawn(function()
+            while _G.SuperSpeed do
+                task.wait(0.1)
+                pcall(function()
+                    LocalPlayer.Character.Humanoid.WalkSpeed = 48
+                end)
+            end
+            pcall(function()
+                LocalPlayer.Character.Humanoid.WalkSpeed = 16
+            end)
+        end)
+    end,
+})
+
+Rayfield:LoadConfiguration()
+
