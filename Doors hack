@@ -1,0 +1,412 @@
+-- ==========================================================
+-- DOORS ULTIMATE SMART AUTO-PLAY HUB | MM2 Style UI v3.0
+-- ==========================================================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+-- Eski arayüzleri temizle
+if CoreGui:FindFirstChild("DoorsProHub") then CoreGui.DoorsProHub:Destroy() end
+if CoreGui:FindFirstChild("DoorsToggleBtn") then CoreGui.DoorsToggleBtn:Destroy() end
+if CoreGui:FindFirstChild("DoorsLoading") then CoreGui.DoorsLoading:Destroy() end
+
+-- ==========================================================
+-- 1. ADIM: YÜKLEME ANİMASYONU VE ARAYÜZ SİSTEMİ
+-- ==========================================================
+local LoadingGui = Instance.new("ScreenGui")
+LoadingGui.Name = "DoorsLoading"
+LoadingGui.Parent = CoreGui
+LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local LoadFrame = Instance.new("Frame")
+LoadFrame.Parent = LoadingGui
+LoadFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
+LoadFrame.Size = UDim2.new(0, 380, 0, 130)
+LoadFrame.Position = UDim2.new(0.5, -190, 0.5, -65)
+
+local LoadCorner = Instance.new("UICorner")
+LoadCorner.CornerRadius = UDim.new(0, 12)
+LoadCorner.Parent = LoadFrame
+
+local LoadStroke = Instance.new("UIStroke")
+LoadStroke.Parent = LoadFrame
+LoadStroke.Color = Color3.fromRGB(120, 0, 255)
+LoadStroke.Thickness = 2
+
+local LoadTitle = Instance.new("TextLabel")
+LoadTitle.Parent = LoadFrame
+LoadTitle.BackgroundTransparency = 1
+LoadTitle.Size = UDim2.new(1, 0, 0, 40)
+LoadTitle.Position = UDim2.new(0, 0, 0.15, 0)
+LoadTitle.Font = Enum.Font.GothamBold
+LoadTitle.Text = "Doors Smart Automation v3.0"
+LoadTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoadTitle.TextSize = 18
+LoadTitle.TextXAlignment = Enum.TextXAlignment.Center
+
+local LoadStatus = Instance.new("TextLabel")
+LoadStatus.Parent = LoadFrame
+LoadStatus.BackgroundTransparency = 1
+LoadStatus.Size = UDim2.new(1, 0, 0, 30)
+LoadStatus.Position = UDim2.new(0, 0, 0.55, 0)
+LoadStatus.Font = Enum.Font.Gotham
+LoadStatus.Text = "Akıllı Yaratık Algılama ve Otomasyon Yükleniyor..."
+LoadStatus.TextColor3 = Color3.fromRGB(170, 170, 180)
+LoadStatus.TextSize = 12
+LoadStatus.TextXAlignment = Enum.TextXAlignment.Center
+
+task.delay(1.5, function()
+    TweenService:Create(LoadFrame, TweenInfo.new(0.4), {Size = UDim2.new(0,0,0,0), BackgroundTransparency = 1}):Play()
+    task.wait(0.4)
+    LoadingGui:Destroy()
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "DoorsProHub"
+    ScreenGui.Parent = CoreGui
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    local ToggleGui = Instance.new("ScreenGui")
+    ToggleGui.Name = "DoorsToggleBtn"
+    ToggleGui.Parent = CoreGui
+    ToggleGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    -- Açma / Kapama Yüzen Tuş
+    local FloatButton = Instance.new("TextButton")
+    FloatButton.Parent = ToggleGui
+    FloatButton.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+    FloatButton.Position = UDim2.new(0.02, 0, 0.4, 0)
+    FloatButton.Size = UDim2.new(0, 56, 0, 56)
+    FloatButton.Font = Enum.Font.GothamBold
+    FloatButton.Text = "DOORS\nSMART"
+    FloatButton.TextColor3 = Color3.fromRGB(150, 0, 255)
+    FloatButton.TextSize = 10
+    FloatButton.Active = true
+    FloatButton.Draggable = true
+
+    local FloatCorner = Instance.new("UICorner")
+    FloatCorner.CornerRadius = UDim.new(1, 0)
+    FloatCorner.Parent = FloatButton
+
+    local FloatStroke = Instance.new("UIStroke")
+    FloatStroke.Parent = FloatButton
+    FloatStroke.Color = Color3.fromRGB(150, 0, 255)
+    FloatStroke.Thickness = 2
+
+    -- Ana Pencere
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Parent = ScreenGui
+    MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+    MainFrame.Position = UDim2.new(0.5, -300, 0.5, -210)
+    MainFrame.Size = UDim2.new(0, 600, 0, 420)
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+    MainFrame.Visible = false
+
+    local MainCorner = Instance.new("UICorner")
+    MainCorner.CornerRadius = UDim.new(0, 10)
+    MainCorner.Parent = MainFrame
+
+    FloatButton.MouseButton1Click:Connect(function()
+        MainFrame.Visible = not MainFrame.Visible
+    end)
+
+    -- Üst Bar
+    local TopBar = Instance.new("Frame")
+    TopBar.Parent = MainFrame
+    TopBar.BackgroundColor3 = Color3.fromRGB(25, 25, 34)
+    TopBar.Size = UDim2.new(1, 0, 0, 42)
+
+    local TopCorner = Instance.new("UICorner")
+    TopCorner.CornerRadius = UDim.new(0, 10)
+    TopCorner.Parent = TopBar
+
+    local Title = Instance.new("TextLabel")
+    Title.Parent = TopBar
+    Title.BackgroundTransparency = 1
+    Title.Position = UDim2.new(0.03, 0, 0, 0)
+    Title.Size = UDim2.new(0.7, 0, 1, 0)
+    Title.Font = Enum.Font.GothamBold
+    Title.Text = "Doors Smart Hub | Akıllı 100. Kapı Otomasyonu"
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.TextSize = 13
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Parent = TopBar
+    CloseButton.BackgroundColor3 = Color3.fromRGB(220, 45, 45)
+    CloseButton.Position = UDim2.new(0.93, 0, 0.2, 0)
+    CloseButton.Size = UDim2.new(0, 26, 0, 26)
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.Text = "X"
+    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseButton.TextSize = 13
+
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(0, 6)
+    CloseCorner.Parent = CloseButton
+
+    CloseButton.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+        ToggleGui:Destroy()
+    end)
+
+    -- Sol Sekme Menüsü (Sidebar)
+    local Sidebar = Instance.new("Frame")
+    Sidebar.Parent = MainFrame
+    Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+    Sidebar.Position = UDim2.new(0, 0, 0, 42)
+    Sidebar.Size = UDim2.new(0, 150, 1, -42)
+
+    local SidebarLayout = Instance.new("UIListLayout")
+    SidebarLayout.Parent = Sidebar
+    SidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    SidebarLayout.Padding = UDim.new(0, 4)
+
+    local Container = Instance.new("Frame")
+    Container.Parent = MainFrame
+    Container.BackgroundTransparency = 1
+    Container.Position = UDim2.new(0, 160, 0, 50)
+    Container.Size = UDim2.new(1, -170, 1, -60)
+
+    local pages = {}
+    local function CreatePage(name)
+        local ScrollingFrame = Instance.new("ScrollingFrame")
+        ScrollingFrame.Name = name .. "Page"
+        ScrollingFrame.Parent = Container
+        ScrollingFrame.Active = true
+        ScrollingFrame.BackgroundTransparency = 1
+        ScrollingFrame.Size = UDim2.new(1, 0, 1, 0)
+        ScrollingFrame.CanvasSize = UDim2.new(0, 0, 3, 0)
+        ScrollingFrame.ScrollBarThickness = 4
+        ScrollingFrame.Visible = false
+
+        local Layout = Instance.new("UIListLayout")
+        Layout.Parent = ScrollingFrame
+        Layout.SortOrder = Enum.SortOrder.LayoutOrder
+        Layout.Padding = UDim.new(0, 8)
+
+        pages[name] = ScrollingFrame
+        return ScrollingFrame
+    end
+
+    local function SwitchPage(name)
+        for _, page in pairs(pages) do page.Visible = false end
+        if pages[name] then pages[name].Visible = true end
+    end
+
+    local function CreateTab(name, targetPage)
+        local TabButton = Instance.new("TextButton")
+        TabButton.Parent = Sidebar
+        TabButton.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+        TabButton.Size = UDim2.new(1, 0, 0, 32)
+        TabButton.Font = Enum.Font.GothamMedium
+        TabButton.Text = name
+        TabButton.TextColor3 = Color3.fromRGB(180, 180, 190)
+        TabButton.TextSize = 11
+
+        TabButton.MouseButton1Click:Connect(function()
+            SwitchPage(targetPage)
+        end)
+    end
+
+    CreatePage("AutoPlay")
+    CreatePage("Visuals")
+    CreatePage("Player")
+
+    CreateTab("Akıllı Otomasyon", "AutoPlay")
+    CreateTab("Görsel / ESP", "Visuals")
+    CreateTab("Karakter", "Player")
+
+    SwitchPage("AutoPlay")
+
+    local function AddToggle(page, text, setting)
+        _G.Settings = _G.Settings or {}
+        _G.Settings[setting] = false
+
+        local ToggleBtn = Instance.new("TextButton")
+        ToggleBtn.Parent = pages[page]
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
+        ToggleBtn.Size = UDim2.new(0.95, 0, 0, 36)
+        ToggleBtn.Font = Enum.Font.Gotham
+        ToggleBtn.Text = "  [OFF] " .. text
+        ToggleBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+        ToggleBtn.TextSize = 11
+        ToggleBtn.TextXAlignment = Enum.TextXAlignment.Left
+
+        local Corner = Instance.new("UICorner")
+        Corner.CornerRadius = UDim.new(0, 6)
+        Corner.Parent = ToggleBtn
+
+        ToggleBtn.MouseButton1Click:Connect(function()
+            _G.Settings[setting] = not _G.Settings[setting]
+            if _G.Settings[setting] then
+                ToggleBtn.Text = "  [ON] " .. text
+                ToggleBtn.BackgroundColor3 = Color3.fromRGB(120, 0, 255)
+            else
+                ToggleBtn.Text = "  [OFF] " .. text
+                ToggleBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
+            end
+        end)
+    end
+
+    -- Otomasyon Seçenekleri
+    AddToggle("AutoPlay", "Akıllı Otomatik Kapı ve İlerleme", "AutoPlayMaster")
+    AddToggle("AutoPlay", "Kütüphane Şifre ve Kitap Çözücü", "LibrarySolver")
+    AddToggle("AutoPlay", "Anahtar ve Nesne Toplayıcı", "AutoKey")
+    
+    -- Görsel Seçenekleri
+    AddToggle("Visuals", "Fullbright (Karanlığı Kaldır)", "Fullbright")
+    AddToggle("Visuals", "Canavar ve Varlık ESP", "EntityESP")
+    
+    -- Karakter Seçenekleri
+    AddToggle("Player", "Hızlı Koşma (WalkSpeed 22)", "SpeedBoost")
+end)
+
+-- ==========================================================
+-- 2. ADIM: MOTORLAR VE AKILLI YARATIK TESPİT SİSTEMİ
+-- ==========================================================
+
+-- Fullbright Motoru
+RunService.RenderStepped:Connect(function()
+    if _G.Settings and _G.Settings.Fullbright then
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 100000
+        Lighting.GlobalShadows = false
+    end
+end)
+
+-- Hız Motoru
+RunService.RenderStepped:Connect(function()
+    if _G.Settings and _G.Settings.SpeedBoost and LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+        if hum then hum.WalkSpeed = 22 end
+    end
+end)
+
+-- Canavar ve Varlık ESP Motoru
+RunService.RenderStepped:Connect(function()
+    if _G.Settings and _G.Settings.EntityESP then
+        for _, v in pairs(Workspace:GetDescendants()) do
+            if v.Name == "RushMoving" or v.Name == "AmbushMoving" or v.Name == "Figure" then
+                if not v:FindFirstChild("DoorsESP") then
+                    local hl = Instance.new("Highlight")
+                    hl.Name = "DoorsESP"
+                    hl.FillColor = Color3.fromRGB(255, 0, 0)
+                    hl.Parent = v
+                end
+            end
+        end
+    else
+        for _, v in pairs(Workspace:GetDescendants()) do
+            if v.Name == "DoorsESP" then v:Destroy() end
+        end
+    end
+end)
+
+-- AKILLI OTO-PLAY & YARATIK ALGILAMA SİSTEMİ (Dolaba Gir / Çık / Kapıya Git)
+task.spawn(function()
+    local currentlyHiding = false
+    
+    while true do
+        task.wait(0.2)
+        if _G.Settings and _G.Settings.AutoPlayMaster then
+            pcall(function()
+                local char = LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+
+                -- 1. YARATIK TESPİTİ (Rush, Ambush vb.)
+                local detectedDanger = nil
+                for _, v in pairs(Workspace:GetChildren()) do
+                    if v.Name == "RushMoving" or v.Name == "AmbushMoving" then
+                        local vPart = v:FindFirstChild("Root") or v:FindFirstChildWhichIsA("BasePart")
+                        if vPart and (hrp.Position - vPart.Position).Magnitude < 140 then
+                            detectedDanger = v
+                        end
+                    end
+                end
+
+                -- 2. TEHLİKE VARSA DOLABA GİR
+                if detectedDanger then
+                    currentlyHiding = true
+                    for _, room in pairs(Workspace.CurrentRooms:GetChildren()) do
+                        local assets = room:FindFirstChild("Assets")
+                        if assets then
+                            for _, obj in pairs(assets:GetChildren()) do
+                                if obj.Name:lower():find("wardrobe") or obj.Name:lower():find("closet") then
+                                    local doorPart = obj:FindFirstChild("Door") or obj:FindFirstChildWhichIsA("BasePart")
+                                    if doorPart and (hrp.Position - doorPart.Position).Magnitude < 60 then
+                                        hrp.CFrame = doorPart.CFrame
+                                    end
+                                end
+                            end
+                        end
+                    end
+                else
+                    -- 3. TEHLİKE GEÇTİYSE DOLAPTAN ÇIK VE KAPILARA İLERLE
+                    if currentlyHiding then
+                        currentlyHiding = false
+                        hrp.CFrame = hrp.CFrame + Vector3.new(3, 0, 3)
+                        task.wait(0.6)
+                    end
+
+                    -- Kapı açma ve ilerleme
+                    if Workspace:FindFirstChild("CurrentRooms") then
+                        for _, room in pairs(Workspace.CurrentRooms:GetChildren()) do
+                            local door = room:FindFirstChild("Door")
+                            if door then
+                                local knob = door:FindFirstChild("Knob")
+                                if knob and (hrp.Position - knob.Position).Magnitude < 50 then
+                                    hrp.CFrame = knob.CFrame + Vector3.new(0, 0, 2)
+                                end
+                            end
+                        end
+                    end
+
+                    -- Anahtar toplama
+                    if _G.Settings.AutoKey then
+                        for _, room in pairs(Workspace.CurrentRooms:GetChildren()) do
+                            local assets = room:FindFirstChild("Assets")
+                            if assets then
+                                for _, item in pairs(assets:GetChildren()) do
+                                    if item.Name == "Key" or item.Name:lower():find("key") then
+                                        local hitbox = item:FindFirstChild("Hitbox") or item:FindFirstChildWhichIsA("BasePart")
+                                        if hitbox and (hrp.Position - hitbox.Position).Magnitude < 40 then
+                                            hrp.CFrame = hitbox.CFrame
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- Kütüphane Bölümü Şifre ve Kitap Çözücü
+RunService.Heartbeat:Connect(function()
+    if _G.Settings and _G.Settings.LibrarySolver then
+        pcall(function()
+            for _, v in pairs(Workspace:GetDescendants()) do
+                if v.Name == "Book" or v.Name == "Paper" then
+                    if not v:FindFirstChild("LibESP") then
+                        local hl = Instance.new("Highlight")
+                        hl.Name = "LibESP"
+                        hl.FillColor = Color3.fromRGB(0, 255, 255)
+                        hl.Parent = v
+                    end
+                end
+            end
+        end)
+    end
+end)
+
