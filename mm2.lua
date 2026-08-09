@@ -1,6 +1,5 @@
 -- ==========================================
--- MM2 Masterpiece Hub v16.0 | KATİL HEDEFLİ
--- Aimbot Artık Sadece Murderer'ı Hedefliyor
+-- MM2 Masterpiece Hub v16.1 | KATİL HEDEFLİ & GELİŞMİŞ ESP
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -13,7 +12,7 @@ local TeleportService = game:GetService("TeleportService")
 local Camera = Workspace.CurrentCamera
 
 -- ==========================================
--- BAĞLANTI HAVUZU (Memory Leak Korumalı)
+-- BAĞLANTI HAVUZU & CACHE (Memory Leak Korumalı)
 -- ==========================================
 local Connections = {
     Dodge = nil, AntiKnife = nil, SmartFarm = nil, Noclip = nil,
@@ -22,14 +21,9 @@ local Connections = {
     Aimbot = nil, XRay = nil, Triggerbot = nil, Prediction = nil
 }
 
-local function KillConnection(name)
-    if Connections[name] then
-        Connections[name]:Disconnect()
-        Connections[name] = nil
-    end
-end
-
+local ESP_Cache = {}
 local XRayParts = {}
+
 local AimbotSettings = {
     FOV = 150,
     Smoothness = 0.15,
@@ -47,6 +41,34 @@ FovCircle.Filled = false
 FovCircle.Color = Color3.fromRGB(255, 0, 0)
 FovCircle.Visible = false
 FovCircle.Transparency = 0.8
+
+-- ==========================================
+-- YARDIMCI FONKSİYONLAR
+-- ==========================================
+local function KillConnection(name)
+    if Connections[name] then
+        Connections[name]:Disconnect()
+        Connections[name] = nil
+    end
+end
+
+local function ClearESP(player)
+    if ESP_Cache[player] then
+        for _, drawing in pairs(ESP_Cache[player].Drawings) do
+            drawing:Remove()
+        end
+        if ESP_Cache[player].Highlight then
+            ESP_Cache[player].Highlight:Destroy()
+        end
+        ESP_Cache[player] = nil
+    end
+end
+
+local function ClearAllESP()
+    for player, _ in pairs(ESP_Cache) do
+        ClearESP(player)
+    end
+end
 
 local function GetMurderer()
     for _, p in ipairs(Players:GetPlayers()) do
@@ -92,7 +114,7 @@ end
 local function IsSheriff()
     local char = LocalPlayer.Character
     local backpack = LocalPlayer:FindFirstChild("Backpack")
-    return char:FindFirstChild("Gun") or (backpack and backpack:FindFirstChild("Gun"))
+    return char and (char:FindFirstChild("Gun") or (backpack and backpack:FindFirstChild("Gun")))
 end
 
 local function FullCleanup()
@@ -114,6 +136,8 @@ local function FullCleanup()
     _G.Bhop = false
     _G.Aimbot = false
     _G.Triggerbot = false
+    
+    ClearAllESP()
     
     for _, p in ipairs(Players:GetPlayers()) do
         if p.Character then
@@ -147,13 +171,13 @@ end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "MM2 Masterpiece Hub v16.0",
+    Name = "MM2 Masterpiece Hub v16.1",
     LoadingTitle = "Katil Avcısı Yükleniyor...",
     LoadingSubtitle = "Murderer Hunter Edition",
     ConfigurationSaving = {
         Enabled = true,
         FolderName = "MM2MasterpieceConfig",
-        FileName = "MM2_Settings_v16"
+        FileName = "MM2_Settings_v16_1"
     },
     Discord = { Enabled = false },
     KeySystem = false
@@ -161,8 +185,8 @@ local Window = Rayfield:CreateWindow({
 
 local ProtectionTab = Window:CreateTab("🛡️ Koruma", 4483362458)
 local FarmTab       = Window:CreateTab("💰 Farm", 4483362458)
-local CombatTab     = Window:CreateTab("🎯 Savaş (YENİ)", 4483362458)
-local VisualsTab    = Window:CreateTab("👁️ Görsel", 4483362458)
+local CombatTab     = Window:CreateTab("🎯 Savaş", 4483362458)
+local VisualsTab    = Window:CreateTab("👁️ Görsel (YENİ)", 4483362458)
 local PlayerTab     = Window:CreateTab("🏃 Karakter", 4483362458)
 local TeleportTab   = Window:CreateTab("⚡ Işınlanma", 4483362458)
 local MiscTab       = Window:CreateTab("🔧 Ekstralar", 4483362458)
@@ -363,7 +387,7 @@ FarmTab:CreateToggle({
 })
 
 -- ==========================================
--- 3. SAVAŞ / AIM (YENİ GELİŞTİRİLMİŞ)
+-- 3. SAVAŞ / AIM
 -- ==========================================
 CombatTab:CreateSection("🎯 KATİL HEDEFLİ AIMBOT")
 
@@ -381,7 +405,6 @@ CombatTab:CreateToggle({
                 FovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
                 FovCircle.Radius = AimbotSettings.FOV
                 
-                -- Sadece şerif olduğunda çalış (katil değilken aimbot mantıksız)
                 if not IsSheriff() then return end
                 
                 local murderer = GetMurderer()
@@ -393,37 +416,32 @@ CombatTab:CreateToggle({
                 
                 if not targetHrp or not targetHum or targetHum.Health <= 0 then return end
                 
-                -- Innocent protection
                 if AimbotSettings.InnocentProtection and IsInnocent(murderer) then return end
                 
                 local screenPos, onScreen = Camera:WorldToViewportPoint(targetHrp.Position)
                 if not onScreen then return end
                 
-                -- FOV kontrolü (sadece daire içindeki katili hedefle)
                 local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
                 local targetScreen = Vector2.new(screenPos.X, screenPos.Y)
                 local distFromCenter = (targetScreen - screenCenter).Magnitude
                 
                 if distFromCenter > AimbotSettings.FOV then
-                    FovCircle.Color = Color3.fromRGB(255, 0, 0) -- Hedef dışında
+                    FovCircle.Color = Color3.fromRGB(255, 0, 0)
                     return
                 end
                 
-                FovCircle.Color = Color3.fromRGB(0, 255, 0) -- Hedef içinde (yeşil)
+                FovCircle.Color = Color3.fromRGB(0, 255, 0)
                 
-                -- Prediction: Katil hareket ediyorsa öne saptır
                 local aimPos = targetHrp.Position
                 if AimbotSettings.Prediction then
                     local velocity = targetHrp.Velocity
-                    local travelTime = (aimPos - Camera.CFrame.Position).Magnitude / 500 -- Mermi hızı ~500
+                    local travelTime = (aimPos - Camera.CFrame.Position).Magnitude / 500
                     aimPos = aimPos + (velocity * travelTime * 0.5)
                 end
                 
-                -- Smooth aim
                 local targetCFrame = CFrame.lookAt(Camera.CFrame.Position, aimPos)
                 Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, AimbotSettings.Smoothness)
                 
-                -- Triggerbot
                 if AimbotSettings.Triggerbot then
                     local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
                     if tool and tool.Name == "Gun" then
@@ -476,24 +494,6 @@ CombatTab:CreateToggle({
 })
 
 CombatTab:CreateToggle({
-    Name = "Prediction (Katil Hareketi Tahmini)",
-    CurrentValue = true,
-    Flag = "PredictionToggle",
-    Callback = function(state)
-        AimbotSettings.Prediction = state
-    end,
-})
-
-CombatTab:CreateToggle({
-    Name = "Innocent Protection (Masum Koruması)",
-    CurrentValue = true,
-    Flag = "InnocentProtectionToggle",
-    Callback = function(state)
-        AimbotSettings.InnocentProtection = state
-    end,
-})
-
-CombatTab:CreateToggle({
     Name = "Hitbox Büyütücü (Görsel)",
     CurrentValue = false,
     Flag = "HitboxExpandToggle",
@@ -527,150 +527,192 @@ CombatTab:CreateToggle({
 })
 
 -- ==========================================
--- 4. GÖRSEL / ESP
+-- 4. GÖRSEL / ESP (TAMAMEN YENİLENDİ)
 -- ==========================================
-VisualsTab:CreateSection("ESP & Aydınlatma")
+VisualsTab:CreateSection("Gelişmiş Drawing ESP")
 
 VisualsTab:CreateToggle({
-    Name = "Gelişmiş ESP (Rol + Mesafe + Tracer + HP)",
+    Name = "Aktif ESP (2D Box + Chams + HP + Rol)",
     CurrentValue = false,
     Flag = "RoleESPToggle",
     Callback = function(state)
         _G.RoleESP = state
         if state then
             Connections.RoleESP = RunService.RenderStepped:Connect(function()
-                if not _G.RoleESP then return end
+                -- Ölü/Ayrılan oyuncuları Cache'den temizle
+                for cachedPlayer, _ in pairs(ESP_Cache) do
+                    if not cachedPlayer or not cachedPlayer.Parent or cachedPlayer == LocalPlayer then
+                        ClearESP(cachedPlayer)
+                    end
+                end
+
                 for _, p in ipairs(Players:GetPlayers()) do
-                    if p ~= LocalPlayer and p.Character then
-                        local char = p.Character
-                        local hrp = char:FindFirstChild("HumanoidRootPart")
-                        local humanoid = char:FindFirstChild("Humanoid")
-                        
-                        if not hrp or not humanoid then continue end
-                        
-                        -- Highlight
-                        local hl = char:FindFirstChild("MM2ESP")
-                        if not hl then
-                            hl = Instance.new("Highlight")
-                            hl.Name = "MM2ESP"
-                            hl.Parent = char
+                    if p == LocalPlayer then continue end
+                    
+                    local char = p.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    local hum = char and char:FindFirstChild("Humanoid")
+                    
+                    if not char or not hrp or not hum then
+                        if ESP_Cache[p] then
+                            for _, drawing in pairs(ESP_Cache[p].Drawings) do drawing.Visible = false end
+                            if ESP_Cache[p].Highlight then ESP_Cache[p].Highlight.Enabled = false end
                         end
+                        continue
+                    end
+                    
+                    -- Cache'de yoksa oluştur
+                    if not ESP_Cache[p] then
+                        ESP_Cache[p] = {
+                            Drawings = {
+                                BoxOutline = Drawing.new("Square"),
+                                Box = Drawing.new("Square"),
+                                Tracer = Drawing.new("Line"),
+                                Name = Drawing.new("Text"),
+                                Distance = Drawing.new("Text"),
+                                HealthOutline = Drawing.new("Square"),
+                                Health = Drawing.new("Square")
+                            },
+                            Highlight = Instance.new("Highlight")
+                        }
                         
-                        -- Text Label
-                        local label = char:FindFirstChild("MM2Label")
-                        if not label then
-                            label = Instance.new("BillboardGui")
-                            label.Name = "MM2Label"
-                            label.Size = UDim2.new(0, 200, 0, 50)
-                            label.StudsOffset = Vector3.new(0, 3, 0)
-                            label.AlwaysOnTop = true
-                            local text = Instance.new("TextLabel", label)
-                            text.Name = "RoleText"
-                            text.Size = UDim2.new(1, 0, 1, 0)
-                            text.BackgroundTransparency = 1
-                            text.TextStrokeTransparency = 0
-                            text.TextScaled = true
-                            text.Font = Enum.Font.GothamBold
-                            label.Parent = char
-                        end
+                        local d = ESP_Cache[p].Drawings
+                        d.BoxOutline.Thickness = 3
+                        d.BoxOutline.Filled = false
+                        d.BoxOutline.Color = Color3.new(0, 0, 0)
                         
-                        -- Health Bar
-                        local hpBar = char:FindFirstChild("MM2HPBar")
-                        if not hpBar then
-                            hpBar = Instance.new("BillboardGui")
-                            hpBar.Name = "MM2HPBar"
-                            hpBar.Size = UDim2.new(0, 100, 0, 8)
-                            hpBar.StudsOffset = Vector3.new(0, 4.5, 0)
-                            hpBar.AlwaysOnTop = true
-                            local bg = Instance.new("Frame", hpBar)
-                            bg.Name = "BG"
-                            bg.Size = UDim2.new(1, 0, 1, 0)
-                            bg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-                            bg.BorderSizePixel = 0
-                            local fill = Instance.new("Frame", bg)
-                            fill.Name = "Fill"
-                            fill.Size = UDim2.new(1, 0, 1, 0)
-                            fill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-                            fill.BorderSizePixel = 0
-                            hpBar.Parent = char
-                        end
+                        d.Box.Thickness = 1
+                        d.Box.Filled = false
+                        
+                        d.Tracer.Thickness = 1
+                        
+                        d.Name.Size = 16
+                        d.Name.Center = true
+                        d.Name.Outline = true
+                        d.Name.Font = 2
+                        
+                        d.Distance.Size = 14
+                        d.Distance.Center = true
+                        d.Distance.Outline = true
+                        d.Distance.Font = 2
+                        
+                        d.HealthOutline.Thickness = 1
+                        d.HealthOutline.Filled = true
+                        d.HealthOutline.Color = Color3.new(0, 0, 0)
+                        
+                        d.Health.Thickness = 1
+                        d.Health.Filled = true
+                        d.Health.ZIndex = 2
+                        
+                        local hl = ESP_Cache[p].Highlight
+                        hl.Name = "MM2_Chams"
+                        hl.FillTransparency = 0.5
+                        hl.OutlineTransparency = 0.1
+                        hl.Parent = game:GetService("CoreGui")
+                    end
+                    
+                    local cache = ESP_Cache[p]
+                    local d = cache.Drawings
+                    local hl = cache.Highlight
+                    
+                    -- Rol Belirleme
+                    local isM = char:FindFirstChild("Knife") or (p:FindFirstChild("Backpack") and p.Backpack:FindFirstChild("Knife"))
+                    local isS = char:FindFirstChild("Gun") or (p:FindFirstChild("Backpack") and p.Backpack:FindFirstChild("Gun"))
+                    local isDead = hum.Health <= 0
+                    
+                    local espColor = Color3.fromRGB(40, 220, 90) -- Masum (Yeşil)
+                    local roleText = "[MASUM]"
+                    
+                    if isDead then
+                        espColor = Color3.fromRGB(150, 150, 150)
+                        roleText = "[ÖLÜ]"
+                    elseif isM then
+                        espColor = Color3.fromRGB(255, 40, 40) -- Katil (Kırmızı)
+                        roleText = "[KATİL]"
+                    elseif isS then
+                        espColor = Color3.fromRGB(40, 100, 255) -- Şerif (Mavi)
+                        roleText = "[ŞERİF]"
+                    end
+                    
+                    local vector, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                    local dist = math.floor((Camera.CFrame.Position - hrp.Position).Magnitude)
+                    
+                    -- Eğer ekrandaysa ve yaşıyorsa çiz (Ölüler ekranı kirletmesin diye gizlenir)
+                    if onScreen and not isDead then
+                        local rootPart = hrp.Position
+                        local head = char:FindFirstChild("Head")
+                        local headPos = head and head.Position + Vector3.new(0, 0.5, 0) or rootPart + Vector3.new(0, 2.5, 0)
+                        local legPos = rootPart - Vector3.new(0, 3, 0)
+                        
+                        local headVector = Camera:WorldToViewportPoint(headPos)
+                        local legVector = Camera:WorldToViewportPoint(legPos)
+                        
+                        local height = math.abs(headVector.Y - legVector.Y)
+                        local width = height / 2
+                        
+                        local boxSize = Vector2.new(width, height)
+                        local boxPosition = Vector2.new(vector.X - width / 2, headVector.Y)
+                        
+                        -- Kutu Çizimi
+                        d.BoxOutline.Size = boxSize
+                        d.BoxOutline.Position = boxPosition
+                        d.BoxOutline.Visible = true
+                        
+                        d.Box.Size = boxSize
+                        d.Box.Position = boxPosition
+                        d.Box.Color = espColor
+                        d.Box.Visible = true
+                        
+                        -- Metin Çizimleri
+                        d.Name.Text = p.Name .. " " .. roleText
+                        d.Name.Position = Vector2.new(vector.X, boxPosition.Y - 20)
+                        d.Name.Color = espColor
+                        d.Name.Visible = true
+                        
+                        d.Distance.Text = tostring(dist) .. "m"
+                        d.Distance.Position = Vector2.new(vector.X, boxPosition.Y + height + 2)
+                        d.Distance.Color = espColor
+                        d.Distance.Visible = true
+                        
+                        -- Sağlık Barı (Dinamik Renk)
+                        local healthPct = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
+                        local hpHeight = height * healthPct
+                        
+                        d.HealthOutline.Size = Vector2.new(4, height + 2)
+                        d.HealthOutline.Position = Vector2.new(boxPosition.X - 7, boxPosition.Y - 1)
+                        d.HealthOutline.Visible = true
+                        
+                        d.Health.Size = Vector2.new(2, hpHeight)
+                        d.Health.Position = Vector2.new(boxPosition.X - 6, boxPosition.Y + height - hpHeight)
+                        d.Health.Color = Color3.fromHSV(healthPct * 0.3, 1, 1) -- Kırmızıdan Yeşile geçiş
+                        d.Health.Visible = true
                         
                         -- Tracer
-                        local tracer = Camera:FindFirstChild("MM2Tracer_" .. p.Name)
-                        if not tracer then
-                            tracer = Drawing.new("Line")
-                            tracer.Thickness = 1.5
-                            tracer.Name = "MM2Tracer_" .. p.Name
-                        end
+                        d.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                        d.Tracer.To = Vector2.new(vector.X, boxPosition.Y + height)
+                        d.Tracer.Color = espColor
+                        d.Tracer.Visible = true
                         
-                        local textObj = label:FindFirstChild("RoleText")
-                        local fillObj = hpBar:FindFirstChild("BG") and hpBar.BG:FindFirstChild("Fill")
-                        if not textObj or not fillObj then continue end
-                        
-                        -- HP güncelle
-                        local hpPercent = humanoid.Health / humanoid.MaxHealth
-                        fillObj.Size = UDim2.new(hpPercent, 0, 1, 0)
-                        
-                        -- Rol tespiti
-                        local isM = char:FindFirstChild("Knife") or (p:FindFirstChild("Backpack") and p.Backpack:FindFirstChild("Knife"))
-                        local isS = char:FindFirstChild("Gun") or (p:FindFirstChild("Backpack") and p.Backpack:FindFirstChild("Gun"))
-                        local isDead = humanoid.Health <= 0
-                        
-                        -- Tracer pozisyonu
-                        local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-                        if onScreen then
-                            tracer.Visible = true
-                            tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                            tracer.To = Vector2.new(screenPos.X, screenPos.Y)
-                        else
-                            tracer.Visible = false
-                        end
-                        
-                        -- Distance
-                        local distance = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") 
-                            and math.floor((LocalPlayer.Character.HumanoidRootPart.Position - hrp.Position).Magnitude) or 0
-                        
-                        if isDead then
-                            hl.FillColor = Color3.fromRGB(100, 100, 100)
-                            tracer.Color = Color3.fromRGB(100, 100, 100)
-                            textObj.Text = p.Name .. " [ÖLÜ] " .. distance .. "m"
-                            textObj.TextColor3 = Color3.fromRGB(100, 100, 100)
-                        elseif isM then
-                            hl.FillColor = Color3.fromRGB(255, 40, 40)
-                            tracer.Color = Color3.fromRGB(255, 40, 40)
-                            textObj.Text = "🔪 KATİL " .. distance .. "m"
-                            textObj.TextColor3 = Color3.fromRGB(255, 80, 80)
-                        elseif isS then
-                            hl.FillColor = Color3.fromRGB(40, 100, 255)
-                            tracer.Color = Color3.fromRGB(40, 100, 255)
-                            textObj.Text = "🔫 ŞERİF " .. distance .. "m"
-                            textObj.TextColor3 = Color3.fromRGB(80, 150, 255)
-                        else
-                            hl.FillColor = Color3.fromRGB(40, 220, 90)
-                            tracer.Color = Color3.fromRGB(40, 220, 90)
-                            textObj.Text = p.Name .. " [MASUM] " .. distance .. "m"
-                            textObj.TextColor3 = Color3.fromRGB(80, 220, 130)
-                        end
+                        -- Chams
+                        hl.Adornee = char
+                        hl.FillColor = espColor
+                        hl.OutlineColor = espColor
+                        hl.Enabled = true
+                    else
+                        for _, drawing in pairs(d) do drawing.Visible = false end
+                        hl.Enabled = false
                     end
                 end
             end)
         else
             KillConnection("RoleESP")
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p.Character then
-                    for _, esp in ipairs(p.Character:GetChildren()) do
-                        if esp.Name:find("MM2") then esp:Destroy() end
-                    end
-                end
-                local tracer = Camera:FindFirstChild("MM2Tracer_" .. p.Name)
-                if tracer then tracer:Destroy() end
-            end
+            ClearAllESP()
         end
     end,
 })
 
 VisualsTab:CreateToggle({
-    Name = "FullBright",
+    Name = "FullBright (Her Yer Aydınlık)",
     CurrentValue = false,
     Flag = "FullBrightToggle",
     Callback = function(state)
@@ -774,15 +816,6 @@ PlayerTab:CreateToggle({
 })
 
 PlayerTab:CreateToggle({
-    Name = "Düşük Yerçekimi",
-    CurrentValue = false,
-    Flag = "MoonGravityToggle",
-    Callback = function(state)
-        Workspace.Gravity = state and 30 or 196.2
-    end,
-})
-
-PlayerTab:CreateToggle({
     Name = "Spinbot",
     CurrentValue = false,
     Flag = "SpinbotToggle",
@@ -796,26 +829,6 @@ PlayerTab:CreateToggle({
             end)
         else
             KillConnection("Spinbot")
-        end
-    end,
-})
-
-PlayerTab:CreateToggle({
-    Name = "BunnyHop",
-    CurrentValue = false,
-    Flag = "BhopToggle",
-    Callback = function(state)
-        _G.Bhop = state
-        if state then
-            Connections.Bhop = RunService.RenderStepped:Connect(function()
-                if _G.Bhop and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                    if LocalPlayer.Character.Humanoid.FloorMaterial ~= Enum.Material.Air then
-                        LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                    end
-                end
-            end)
-        else
-            KillConnection("Bhop")
         end
     end,
 })
@@ -860,50 +873,13 @@ TeleportTab:CreateButton({
     end,
 })
 
-TeleportTab:CreateButton({
-    Name = "Şerifin Yanına Işınlan",
-    Callback = function()
-        pcall(function()
-            local sheriff = GetSheriff()
-            if sheriff and sheriff.Character and sheriff.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = sheriff.Character.HumanoidRootPart.CFrame * CFrame.new(3, 0, 0)
-            end
-        end)
-    end,
-})
-
-TeleportTab:CreateButton({
-    Name = "Harita Merkezine",
-    Callback = function()
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 50, 0)
-        end
-    end,
-})
-
-TeleportTab:CreateButton({
-    Name = "Rastgele Oyuncuya",
-    Callback = function()
-        pcall(function()
-            local players = Players:GetPlayers()
-            local target = players[math.random(1, #players)]
-            if target ~= LocalPlayer and target.Character and LocalPlayer.Character then
-                local tHrp = target.Character:FindFirstChild("HumanoidRootPart")
-                if tHrp then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = tHrp.CFrame * CFrame.new(5, 0, 0)
-                end
-            end
-        end)
-    end,
-})
-
 -- ==========================================
 -- 7. EKSTRALAR
 -- ==========================================
 MiscTab:CreateSection("Yardımcı Araçlar")
 
 MiscTab:CreateToggle({
-    Name = "Düşen Silahı Toplayıcı",
+    Name = "Düşen Silahı Otomatik Topla",
     CurrentValue = false,
     Flag = "AutoGunToggle",
     Callback = function(state)
@@ -932,84 +908,12 @@ MiscTab:CreateToggle({
 })
 
 MiscTab:CreateButton({
-    Name = "Katili İzle (Kamera Kilidi)",
-    Callback = function()
-        pcall(function()
-            local murderer = GetMurderer()
-            if murderer and murderer.Character then
-                local hum = murderer.Character:FindFirstChild("Humanoid")
-                if hum then Camera.CameraSubject = hum end
-            end
-        end)
-    end,
-})
-
-MiscTab:CreateButton({
-    Name = "Kamerayı Kendine Getir",
-    Callback = function()
-        pcall(function()
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                Camera.CameraSubject = LocalPlayer.Character.Humanoid
-            end
-        end)
-    end,
-})
-
-MiscTab:CreateButton({
-    Name = "FPS / Lag Temizleyici",
-    Callback = function()
-        pcall(function()
-            for _, v in ipairs(Lighting:GetChildren()) do
-                if v:IsA("PostEffect") then v.Enabled = false end
-            end
-            if Workspace.Terrain then
-                Workspace.Terrain.WaterWaveSize = 0
-                Workspace.Terrain.WaterWaveTransparency = 1
-                Workspace.Terrain.WaterReflectance = 0
-            end
-            Lighting.GlobalShadows = false
-            Lighting.FogEnd = 100000
-        end)
-    end,
-})
-
-MiscTab:CreateButton({
-    Name = "Sunucuyu Yenile (Rejoin)",
-    Callback = function()
-        pcall(function()
-            TeleportService:Teleport(game.PlaceId, LocalPlayer)
-        end)
-    end,
-})
-
-MiscTab:CreateButton({
-    Name = "Özel Nişangah Ekle",
-    Callback = function()
-        pcall(function()
-            local CoreGui = game:GetService("CoreGui")
-            if CoreGui:FindFirstChild("CustomCrosshair") then
-                CoreGui.CustomCrosshair:Destroy()
-                return
-            end
-            local chGui = Instance.new("ScreenGui", CoreGui)
-            chGui.Name = "CustomCrosshair"
-            local dot = Instance.new("Frame", chGui)
-            dot.Size = UDim2.new(0, 6, 0, 6)
-            dot.Position = UDim2.new(0.5, -3, 0.5, -3)
-            dot.BackgroundColor3 = Color3.fromRGB(0, 255, 120)
-            dot.BorderSizePixel = 0
-            Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
-        end)
-    end,
-})
-
-MiscTab:CreateButton({
     Name = "⚠️ TÜM HİLELERİ KAPAT",
     Callback = function()
         FullCleanup()
         Rayfield:Notify({
             Title = "Temizlik Tamam",
-            Content = "Tüm hileler ve bağlantılar kapatıldı.",
+            Content = "Tüm hileler kapatıldı ve ekrandaki objeler silindi.",
             Duration = 3
         })
     end,
@@ -1019,7 +923,8 @@ MiscTab:CreateButton({
 -- BAŞLANGIÇ BİLDİRİMİ
 -- ==========================================
 Rayfield:Notify({
-    Title = "MM2 Masterpiece Hub v16.0",
-    Content = "🎯 Aimbot artık SADECE KATİLİ hedefliyor!\n📍 Prediction + FOV + Triggerbot aktif",
+    Title = "ESP Yükseltildi! (v16.1)",
+    Content = "2D Box, Dinamik HP Barı ve sıfır lag destekli özel çizim motoru eklendi.",
     Duration = 6
 })
+
