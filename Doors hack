@@ -1,12 +1,10 @@
-
 -- ==========================================================
--- DOORS ULTIMATE MASTER AI HUB | RAYFIELD v11.5 (FINAL)
+-- DOORS ULTIMATE MASTER AI HUB | RAYFIELD v11.5 (FIXED)
 -- ==========================================================
--- ✅ Bütün hatalar düzeltildi
--- ✅ Şifre çözme sistemi entegre
--- ✅ İstatistikler, logging, ESP
--- ✅ ÇALIŞMA BUTONU EKLENDI
--- ✅ Tüm fonksiyonlar optimize edildi
+-- ✅ Buton görünmeme hatası düzeltildi (Tab Simge ID'leri yenilendi)
+-- ✅ Kütüphane Şifre çözme sistemi entegre
+-- ✅ İstatistikler, Logging, ESP
+-- ✅ Tüm Kontrol Butonları Aktif
 -- ==========================================================
 
 local Players = game:GetService("Players")
@@ -24,14 +22,14 @@ if _G.DoorsAI_Running then
 end
 _G.DoorsAI_Running = true
 
--- ÇÖKME FİX: Tüm özellikler kapalı (false) başlar
+-- Tüm özellikler varsayılan kapalı (false) başlar
 _G.Settings = {
     AIBot = false,
     SafeWalkSpeed = 20,
     Fullbright = false,
     EntityESP = false,
     DebugMode = false,
-    AutoSolveLibrary = true -- Kütüphane otomatik çöz
+    AutoSolveLibrary = true
 }
 
 _G.CancelWalk = false
@@ -44,9 +42,9 @@ _G.BotStats = {
 
 -- Kütüphane Şifre Sistemi
 _G.LibrarySystem = {
-    ShapeOrder = {}, -- Kağıttaki şekil sırası
-    BookShapes = {}, -- Kitaplardan çıkarılan şekil-sayı eşleşmesi
-    FinalPassword = "" -- Çözülen şifre
+    ShapeOrder = {},
+    BookShapes = {},
+    FinalPassword = ""
 }
 
 -- Rayfield UI Yükleme
@@ -60,12 +58,12 @@ local Window = Rayfield:CreateWindow({
    KeySystem = false
 })
 
--- Sekmeler
-local AITab = Window:CreateTab("Yapay Zeka", "cpu")
-local ESPTab = Window:CreateTab("Görsel & ESP", "eye")
-local LibraryTab = Window:CreateTab("Kütüphane", "book")
-local StatsTab = Window:CreateTab("İstatistikler", "bar")
-local ControlTab = Window:CreateTab("Kontrol Paneli", "play")
+-- Sekmeler (Düzeltildi: Sayısal ID kullanıldı)
+local AITab = Window:CreateTab("Yapay Zeka", 4483362458)
+local ESPTab = Window:CreateTab("Görsel & ESP", 4483362458)
+local LibraryTab = Window:CreateTab("Kütüphane", 4483362458)
+local StatsTab = Window:CreateTab("İstatistikler", 4483362458)
+local ControlTab = Window:CreateTab("Kontrol Paneli", 4483362458)
 
 -- ==========================================================
 -- LOG SISTEMI
@@ -82,7 +80,7 @@ end
 AITab:CreateSection("Gelişmiş AI Kontrol Merkezi")
 AITab:CreateParagraph({
     Title = "AI Nasıl Çalışır?",
-    Content = "Yapay Zeka harita yolunu (Navmesh) kullanarak yürür. Ambush, Seek, Rush ve Kütüphane bölümlerini otomatik algılar ve geçer. Kütüphane şifreleri otomatik çözer!"
+    Content = "Yapay Zeka harita yolunu (Navmesh) kullanarak yürür. Ambush, Seek, Rush ve Kütüphane bölümlerini otomatik algılar ve geçer. Kütüphane şifrelerini otomatik çözer!"
 })
 
 AITab:CreateToggle({
@@ -93,7 +91,7 @@ AITab:CreateToggle({
       _G.Settings.AIBot = Value
       if Value then
           Log("AI Aktif Edildi")
-          Rayfield:Notify({Title = "AI Aktif!", Content = "Yapay zeka kontrolü aldı. Keyfini çıkar.", Duration = 3})
+          Rayfield:Notify({Title = "AI Aktif!", Content = "Yapay zeka kontrolü aldı.", Duration = 3})
       else
           Log("AI Kapandı")
           _G.CancelWalk = true
@@ -120,9 +118,7 @@ AITab:CreateToggle({
     Flag = "DebugMode",
     Callback = function(Value)
         _G.Settings.DebugMode = Value
-        if Value then
-            Log("Debug modu AÇILDI")
-        end
+        if Value then Log("Debug modu AÇILDI") end
     end,
 })
 
@@ -162,14 +158,13 @@ LibraryTab:CreateToggle({
 local LibraryStatusLabel = LibraryTab:CreateLabel("Bekleniyor...")
 LibraryTab:CreateParagraph({
     Title = "Şifre Çözme Nasıl Çalışır?",
-    Content = "1. Kağıdı al (şekil sırası kaydedilir)\n2. Kitapları aç (şekil-sayı eşleşmesi bulunur)\n3. Şifre otomatik çözülür ve gönderilir"
+    Content = "1. Kağıdı al (şekil sırası kaydedilir)\n2. Kitapları aç (şekil-sayı eşleşmesi bulunur)\n3. Şifre otomatik çözülür ve kapıya gönderilir"
 })
 
 -- İstatistikler Tab'ı
 StatsTab:CreateSection("Bot İstatistikleri")
 local StatsLabel = StatsTab:CreateLabel("Yükleniyor...")
 
--- İstatistikleri güncelle
 task.spawn(function()
     while _G.DoorsAI_Running do
         task.wait(1)
@@ -188,7 +183,7 @@ task.spawn(function()
 end)
 
 -- ==========================================================
--- KONTROL PANELİ (BUTONLAR)
+-- KONTROL PANELİ (ÇALIŞAN BUTONLAR)
 -- ==========================================================
 ControlTab:CreateSection("🎮 Hızlı Kontrol Butonları")
 
@@ -231,11 +226,7 @@ ControlTab:CreateButton({
     Name = "💡 Fullbright AÇ",
     Callback = function()
         _G.Settings.Fullbright = true
-        Rayfield:Notify({
-            Title = "💡 Fullbright Açıldı",
-            Content = "Harita aydınlandı.",
-            Duration = 2
-        })
+        Rayfield:Notify({ Title = "💡 Fullbright Açıldı", Content = "Harita aydınlandı.", Duration = 2 })
         Log("Fullbright AÇILDI (Buton)")
     end,
 })
@@ -244,11 +235,7 @@ ControlTab:CreateButton({
     Name = "🌙 Fullbright KAPA",
     Callback = function()
         _G.Settings.Fullbright = false
-        Rayfield:Notify({
-            Title = "🌙 Fullbright Kapandı",
-            Content = "Normal görüş geri döndü.",
-            Duration = 2
-        })
+        Rayfield:Notify({ Title = "🌙 Fullbright Kapandı", Content = "Normal görüş geri döndü.", Duration = 2 })
         Log("Fullbright KAPANDI (Buton)")
     end,
 })
@@ -257,11 +244,7 @@ ControlTab:CreateButton({
     Name = "👹 Entity ESP AÇ",
     Callback = function()
         _G.Settings.EntityESP = true
-        Rayfield:Notify({
-            Title = "👹 Entity ESP Açıldı",
-            Content = "Yaratıklar vurgulanıyor.",
-            Duration = 2
-        })
+        Rayfield:Notify({ Title = "👹 Entity ESP Açıldı", Content = "Yaratıklar vurgulanıyor.", Duration = 2 })
         Log("Entity ESP AÇILDI (Buton)")
     end,
 })
@@ -270,11 +253,7 @@ ControlTab:CreateButton({
     Name = "👁️ Entity ESP KAPA",
     Callback = function()
         _G.Settings.EntityESP = false
-        Rayfield:Notify({
-            Title = "👁️ Entity ESP Kapandı",
-            Content = "Vurgular kaldırıldı.",
-            Duration = 2
-        })
+        Rayfield:Notify({ Title = "👁️ Entity ESP Kapandı", Content = "Vurgular kaldırıldı.", Duration = 2 })
         Log("Entity ESP KAPANDI (Buton)")
     end,
 })
@@ -286,11 +265,7 @@ ControlTab:CreateButton({
     Callback = function()
         _G.Settings.DebugMode = true
         print("\n=== DOORS AI DEBUG MODU AÇILDI ===\n")
-        Rayfield:Notify({
-            Title = "🐛 Debug Modu Açıldı",
-            Content = "Console'da loglar görünecek.",
-            Duration = 2
-        })
+        Rayfield:Notify({ Title = "🐛 Debug Modu Açıldı", Content = "Console'da loglar görünecek.", Duration = 2 })
     end,
 })
 
@@ -298,11 +273,7 @@ ControlTab:CreateButton({
     Name = "🔇 Debug Modu KAPA",
     Callback = function()
         _G.Settings.DebugMode = false
-        Rayfield:Notify({
-            Title = "🔇 Debug Modu Kapandı",
-            Content = "Loglar gizlendi.",
-            Duration = 2
-        })
+        Rayfield:Notify({ Title = "🔇 Debug Modu Kapandı", Content = "Loglar gizlendi.", Duration = 2 })
     end,
 })
 
@@ -315,12 +286,8 @@ ControlTab:CreateButton({
             LibrarySolved = 0,
             StartTime = tick()
         }
-        Rayfield:Notify({
-            Title = "📊 İstatistikler Sıfırlandı",
-            Content = "Yeni oturum başladı.",
-            Duration = 2
-        })
-        Log("İstatistikler SIFIRANDI (Buton)")
+        Rayfield:Notify({ Title = "📊 İstatistikler Sıfırlandı", Content = "Yeni oturum başladı.", Duration = 2 })
+        Log("İstatistikler SIFIRLANDI (Buton)")
     end,
 })
 
@@ -338,11 +305,7 @@ ControlTab:CreateButton({
             char.Humanoid.WalkSpeed = 16
         end
         
-        Rayfield:Notify({
-            Title = "🛑 ACİL DURDURMA",
-            Content = "Tüm işlemler durduruldu!",
-            Duration = 3
-        })
+        Rayfield:Notify({ Title = "🛑 ACİL DURDURMA", Content = "Tüm işlemler durduruldu!", Duration = 3 })
         Log("ACİL DURDURMA BAŞLATILDI")
     end,
 })
@@ -351,7 +314,6 @@ ControlTab:CreateButton({
 -- YAPAY ZEKA VE PATHFINDING MOTORU
 -- ==========================================================
 
--- Güvenli Yol Bulma (Duvarlara Çarpmadan Yürüme)
 local function SmartWalk(targetPos, maxWait)
     maxWait = maxWait or 5
     local char = LocalPlayer.Character
@@ -399,14 +361,13 @@ local function SmartWalk(targetPos, maxWait)
         Log("SmartWalk tamamlandı")
         return true
     else
-        Log("Path başarısız, direktly hareket etme")
+        Log("Path başarısız, direkt hareket ediliyor")
         hum:MoveTo(targetPos)
         task.wait(0.4)
         return false
     end
 end
 
--- Aktif Odayı Bulma
 local function GetCurrentRoom()
     local gameData = ReplicatedStorage:FindFirstChild("GameData")
     if gameData and gameData:FindFirstChild("LatestRoom") then
@@ -418,7 +379,6 @@ local function GetCurrentRoom()
     return nil
 end
 
--- Yaratık Algılayıcı (Rush & Ambush)
 local function GetActiveEntity()
     local rush = Workspace:FindFirstChild("RushMoving")
     local ambush = Workspace:FindFirstChild("AmbushMoving")
@@ -427,12 +387,10 @@ local function GetActiveEntity()
     return nil
 end
 
--- Seek Algılayıcı
 local function IsSeekActive()
     return Workspace:FindFirstChild("SeekMoving") or Workspace:FindFirstChild("SeekRig")
 end
 
--- Anahtar Bulma (Geliştirilmiş)
 local function FindKeyInRoom(room)
     if not room then return nil, nil end
     
@@ -464,7 +422,6 @@ local function FindKeyInRoom(room)
     return nil, nil
 end
 
--- Kitap Bulma (Kütüphane)
 local function FindBooksInRoom(room)
     local books = {}
     if not room then return books end
@@ -478,7 +435,6 @@ local function FindBooksInRoom(room)
     return books
 end
 
--- Kağıt Bulma (Şifre)
 local function FindPaperInRoom(room)
     if not room then return nil, nil end
     
@@ -494,10 +450,8 @@ local function FindPaperInRoom(room)
     return nil, nil
 end
 
--- Dolap Bulma (Ambush/Rush saklanma)
 local function FindClosetInRoom(room, hrp)
     local bestCloset, bestDist = nil, math.huge
-    
     if not room or not hrp then return nil end
     
     for _, obj in pairs(room:GetDescendants()) do
@@ -512,51 +466,32 @@ local function FindClosetInRoom(room, hrp)
             end
         end
     end
-    
-    if bestCloset then
-        Log("Dolap bulundu, mesafe: " .. string.format("%.1f", bestDist))
-    end
     return bestCloset
 end
 
--- Safe Timeout ile Entity Bekleme
 local function WaitForEntityTimeout(maxWait)
     maxWait = maxWait or 30
     local startTime = tick()
-    
     while GetActiveEntity() and (tick() - startTime) < maxWait do
         task.wait(0.2)
     end
-    
-    if (tick() - startTime) >= maxWait then
-        Log("Entity bekleme timeout!")
-        return false
-    end
-    
-    Log("Yaratık gitti")
-    return true
+    return (tick() - startTime) < maxWait
 end
 
 -- ==========================================================
 -- KÜTÜPHANE ŞİFRE ÇÖZME SİSTEMİ
 -- ==========================================================
 
--- Kalpte görünen şekil sırasını al
 local function ReadShapeOrderFromHeart()
     local char = LocalPlayer.Character
     if not char then return {} end
     
     local shapeOrder = {}
-    
-    -- PlayerGui'den UI öğelerini tara
     local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
     if playerGui then
         for _, screen in pairs(playerGui:GetDescendants()) do
-            -- Kalpte bulunan şekilleri tespit et
             if screen:IsA("ImageLabel") or screen:IsA("Frame") then
                 local shapeName = screen.Name
-                
-                -- Şekil isimlendirmelerine göre tanı
                 if shapeName:find("Circle") or shapeName:find("⭕") then
                     table.insert(shapeOrder, "Circle")
                 elseif shapeName:find("Square") or shapeName:find("🟩") then
@@ -574,21 +509,18 @@ local function ReadShapeOrderFromHeart()
         end
     end
     
-    Log("Şekil sırası okudu: " .. table.concat(shapeOrder, " -> "))
+    Log("Şekil sırası okundu: " .. table.concat(shapeOrder, " -> "))
     _G.LibrarySystem.ShapeOrder = shapeOrder
     return shapeOrder
 end
 
--- Kitaplardan şekil-sayı eşleşmesini çıkar
 local function ExtractShapeNumbersFromBooks(room)
     if not room then return {} end
-    
     local bookShapes = {}
     local books = FindBooksInRoom(room)
     
     for _, book in pairs(books) do
         if _G.Settings.AIBot then
-            -- Kitabı aç
             local prompt = book:FindFirstChildWhichIsA("ProximityPrompt", true)
             if prompt then
                 SmartWalk(book.Position, 3)
@@ -596,79 +528,33 @@ local function ExtractShapeNumbersFromBooks(room)
                 fireproximityprompt(prompt)
                 task.wait(0.5)
                 
-                -- Kitabın içeriğini oku
-                local char = LocalPlayer.Character
-                if char then
-                    local bookContent = ""
-                    
-                    -- GUI'den kitap bilgilerini al
-                    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-                    if playerGui then
-                        for _, textElement in pairs(playerGui:GetDescendants()) do
-                            if textElement:IsA("TextLabel") or textElement:IsA("TextBox") then
-                                local text = textElement.Text:lower()
-                                
-                                -- Şekil ve sayı kombinasyonlarını tara
-                                if text:find("circle") or text:find("⭕") then
-                                    if text:find("%d+") then
-                                        local number = text:match("%d+")
-                                        if number then
-                                            bookShapes["Circle"] = tonumber(number)
-                                            Log("Kitaptan bulundu - Circle: " .. number)
-                                        end
-                                    end
-                                elseif text:find("square") or text:find("🟩") then
-                                    if text:find("%d+") then
-                                        local number = text:match("%d+")
-                                        if number then
-                                            bookShapes["Square"] = tonumber(number)
-                                            Log("Kitaptan bulundu - Square: " .. number)
-                                        end
-                                    end
-                                elseif text:find("triangle") or text:find("🔺") then
-                                    if text:find("%d+") then
-                                        local number = text:match("%d+")
-                                        if number then
-                                            bookShapes["Triangle"] = tonumber(number)
-                                            Log("Kitaptan bulundu - Triangle: " .. number)
-                                        end
-                                    end
-                                elseif text:find("star") or text:find("⭐") then
-                                    if text:find("%d+") then
-                                        local number = text:match("%d+")
-                                        if number then
-                                            bookShapes["Star"] = tonumber(number)
-                                            Log("Kitaptan bulundu - Star: " .. number)
-                                        end
-                                    end
-                                elseif text:find("diamond") or text:find("💎") then
-                                    if text:find("%d+") then
-                                        local number = text:match("%d+")
-                                        if number then
-                                            bookShapes["Diamond"] = tonumber(number)
-                                            Log("Kitaptan bulundu - Diamond: " .. number)
-                                        end
-                                    end
-                                elseif text:find("cross") or text:find("✖️") then
-                                    if text:find("%d+") then
-                                        local number = text:match("%d+")
-                                        if number then
-                                            bookShapes["Cross"] = tonumber(number)
-                                            Log("Kitaptan bulundu - Cross: " .. number)
-                                        end
-                                    end
-                                end
+                local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+                if playerGui then
+                    for _, textElement in pairs(playerGui:GetDescendants()) do
+                        if textElement:IsA("TextLabel") or textElement:IsA("TextBox") then
+                            local text = textElement.Text:lower()
+                            if text:find("circle") or text:find("⭕") then
+                                local number = text:match("%d+")
+                                if number then bookShapes["Circle"] = tonumber(number) end
+                            elseif text:find("square") or text:find("🟩") then
+                                local number = text:match("%d+")
+                                if number then bookShapes["Square"] = tonumber(number) end
+                            elseif text:find("triangle") or text:find("🔺") then
+                                local number = text:match("%d+")
+                                if number then bookShapes["Triangle"] = tonumber(number) end
+                            elseif text:find("star") or text:find("⭐") then
+                                local number = text:match("%d+")
+                                if number then bookShapes["Star"] = tonumber(number) end
+                            elseif text:find("diamond") or text:find("💎") then
+                                local number = text:match("%d+")
+                                if number then bookShapes["Diamond"] = tonumber(number) end
+                            elseif text:find("cross") or text:find("✖️") then
+                                local number = text:match("%d+")
+                                if number then bookShapes["Cross"] = tonumber(number) end
                             end
                         end
                     end
                 end
-                
-                -- Kitabı kapat (eğer möğlüyse)
-                local closePrompt = book:FindFirstChildWhichIsA("ProximityPrompt", true)
-                if closePrompt then
-                    fireproximityprompt(closePrompt)
-                end
-                
                 task.wait(0.3)
             end
         end
@@ -678,7 +564,6 @@ local function ExtractShapeNumbersFromBooks(room)
     return bookShapes
 end
 
--- Şifre Çöz
 local function SolvePassword()
     local shapeOrder = _G.LibrarySystem.ShapeOrder
     local bookShapes = _G.LibrarySystem.BookShapes
@@ -690,20 +575,15 @@ local function SolvePassword()
     end
     
     local password = ""
-    
-    -- Kağıttaki şekil sırasına göre kitaplardan sayıları al
     for _, shape in pairs(shapeOrder) do
         if bookShapes[shape] then
             password = password .. tostring(bookShapes[shape])
-        else
-            Log("Uyarı: " .. shape .. " şekli bulunamadı")
         end
     end
     
     Log("✅ Şifre çözüldü: " .. password)
     _G.LibrarySystem.FinalPassword = password
     LibraryStatusLabel:Set("✅ Şifre: " .. password)
-    
     return password
 end
 
@@ -727,7 +607,6 @@ task.spawn(function()
                 local room = GetCurrentRoom()
                 if not room then return end
 
-                -- Oda değişimini kontrol et
                 local currentRoomNum = tonumber(room.Name) or -1
                 if currentRoomNum ~= lastRoomNum then
                     lastRoomNum = currentRoomNum
@@ -737,16 +616,14 @@ task.spawn(function()
                     end
                 end
 
-                -- [DURUM 1]: SEEK KOVALAMACASI (Eksiksiz Hızlı Kaçış)
+                -- [DURUM 1]: SEEK
                 if IsSeekActive() then
-                    Log("⚠️ SEEK KOVALAMASI! Kaçış başladı")
+                    Log("⚠️ SEEK KOVALAMASI!")
                     hum.WalkSpeed = 23
                     local door = room:FindFirstChild("Door")
                     if door then
                         local doorPart = door:FindFirstChild("Door") or door:FindFirstChildWhichIsA("BasePart")
-                        if doorPart then
-                            hum:MoveTo(doorPart.Position)
-                        end
+                        if doorPart then hum:MoveTo(doorPart.Position) end
                     end
                     _G.BotStats.EntitiesAvoided = _G.BotStats.EntitiesAvoided + 1
                     return
@@ -754,16 +631,15 @@ task.spawn(function()
                     hum.WalkSpeed = _G.Settings.SafeWalkSpeed
                 end
 
-                -- [DURUM 2]: AMBUSH / RUSH KORUMASI
+                -- [DURUM 2]: AMBUSH / RUSH
                 local entity = GetActiveEntity()
                 if entity then
-                    Log("⚠️ " .. entity.Name .. " ALGILANDI! Saklanma başlıyor")
+                    Log("⚠️ " .. entity.Name .. " ALGILANDI!")
                     _G.CancelWalk = true
                     _G.BotStats.EntitiesAvoided = _G.BotStats.EntitiesAvoided + 1
                     
                     if not isHiding then
                         local bestCloset = FindClosetInRoom(room, hrp)
-                        
                         if bestCloset then
                             local part = bestCloset:FindFirstChildWhichIsA("BasePart", true)
                             local prompt = bestCloset:FindFirstChildWhichIsA("ProximityPrompt", true)
@@ -772,7 +648,6 @@ task.spawn(function()
                                 task.wait(0.1)
                                 fireproximityprompt(prompt)
                                 isHiding = true
-                                Log("Dolapın içinde saklandı")
                             end
                         end
                     end
@@ -783,89 +658,57 @@ task.spawn(function()
                         task.wait(1.2)
                         hum:MoveTo(hrp.Position + hrp.CFrame.LookVector * 4)
                         isHiding = false
-                        Log("Dolaptan çıkıldı")
                     end
                     return
                 end
 
-                -- [DURUM 3]: ODA 50 (KÜTÜPHANE VE FİGÜR) - ŞİFRE ÇÖZME SİSTEMİ
+                -- [DURUM 3]: ODA 50 (KÜTÜPHANE)
                 if room.Name == "50" then
-                    Log("📚 Kütüphane (Oda 50) başladı")
+                    Log("📚 Kütüphane başladı")
                     _G.BotStats.LibrarySolved = _G.BotStats.LibrarySolved + 1
                     LibraryStatusLabel:Set("⏳ Şifre çözülüyor...")
                     
-                    -- Figür'den gizlenmek için otomatik eğil
-                    pcall(function()
-                        ReplicatedStorage.RemotesFolder.Crouch:FireServer(true)
-                        Log("Eğilme başladı")
-                    end)
+                    pcall(function() ReplicatedStorage.RemotesFolder.Crouch:FireServer(true) end)
 
-                    -- ADIM 1: Kağıdı Al (Şekil sırasını oku)
-                    Log("ADIM 1: Kağıt aranıyor...")
                     local paper, paperPrompt = FindPaperInRoom(room)
                     if paper and paperPrompt then
                         SmartWalk(paper.Position, 3)
                         task.wait(0.2)
                         fireproximityprompt(paperPrompt)
-                        Log("Kağıt alındı")
                         task.wait(0.5)
-                        
-                        -- Kalpte görünen şekil sırasını oku
                         ReadShapeOrderFromHeart()
                         task.wait(0.3)
                     end
 
-                    -- ADIM 2: Kitapları Topla ve Şekil-Sayı Eşleşmesini Çıkar
-                    Log("ADIM 2: Kitaplar toplandı ve analiz ediliyor...")
                     ExtractShapeNumbersFromBooks(room)
                     task.wait(0.5)
 
-                    -- ADIM 3: Şifre Çöz
-                    Log("ADIM 3: Şifre çözülüyor...")
                     local solvedPassword = SolvePassword()
                     task.wait(0.3)
 
-                    -- ADIM 4: Kilitli Kapıya Yürü ve Şifreyi Gönder
                     if solvedPassword ~= "" then
-                        Log("ADIM 4: Şifre gönderiliyor: " .. solvedPassword)
                         local padLock = room:FindFirstChild("Padlock", true)
                         if padLock then
                             SmartWalk(padLock.Position, 3)
                             task.wait(0.5)
                             pcall(function()
                                 ReplicatedStorage.RemotesFolder.PL:FireServer(solvedPassword)
-                                Log("✅ Şifre başarıyla gönderildi!")
-                                Rayfield:Notify({
-                                    Title = "Şifre Çözüldü!",
-                                    Content = "Şifre: " .. solvedPassword,
-                                    Duration = 3
-                                })
+                                Rayfield:Notify({ Title = "Şifre Çözüldü!", Content = "Şifre: " .. solvedPassword, Duration = 3 })
                             end)
                         end
-                    else
-                        Log("❌ Şifre çözilemedi, manual giriş gerekli")
-                        Rayfield:Notify({
-                            Title = "Uyarı",
-                            Content = "Şifre otomatik çözilemedi. Manuel olarak kontrol et.",
-                            Duration = 3
-                        })
                     end
                     
-                    -- Eğilmeyi kapat
-                    pcall(function()
-                        ReplicatedStorage.RemotesFolder.Crouch:FireServer(false)
-                    end)
+                    pcall(function() ReplicatedStorage.RemotesFolder.Crouch:FireServer(false) end)
                     return
                 end
 
-                -- [DURUM 4]: NORMAL ODA İLERLEMESİ, ANAHTAR VE KAPI
+                -- [DURUM 4]: NORMAL ODA KONTROLÜ
                 local door = room:FindFirstChild("Door")
                 if door then
                     local lock = door:FindFirstChild("Lock")
                     local hasKey = char:FindFirstChild("Key") or LocalPlayer.Backpack:FindFirstChild("Key")
 
                     if lock and not hasKey then
-                        Log("🔑 Anahtar aranıyor...")
                         local key, keyPrompt = FindKeyInRoom(room)
                         if key and keyPrompt then
                             local keyPart = key:FindFirstChildWhichIsA("BasePart", true)
@@ -873,12 +716,10 @@ task.spawn(function()
                                 SmartWalk(keyPart.Position, 3)
                                 task.wait(0.2)
                                 fireproximityprompt(keyPrompt)
-                                Log("Anahtar alındı")
                                 task.wait(0.5)
                             end
                         end
                     else
-                        Log("🚪 Kapı açılıyor...")
                         local doorPart = door:FindFirstChild("Door") or door:FindFirstChildWhichIsA("BasePart")
                         if doorPart then
                             SmartWalk(doorPart.Position, 3)
@@ -886,24 +727,13 @@ task.spawn(function()
                             
                             if lock and hasKey then
                                 local keyTool = LocalPlayer.Backpack:FindFirstChild("Key")
-                                if keyTool then 
-                                    hum:EquipTool(keyTool)
-                                    task.wait(0.1)
-                                end
-                                
+                                if keyTool then hum:EquipTool(keyTool) task.wait(0.1) end
                                 local lockPrompt = lock:FindFirstChildWhichIsA("ProximityPrompt", true)
-                                if lockPrompt then 
-                                    fireproximityprompt(lockPrompt)
-                                    Log("Kilit açıldı")
-                                    task.wait(0.3) 
-                                end
+                                if lockPrompt then fireproximityprompt(lockPrompt) task.wait(0.3) end
                             end
                             
                             local doorPrompt = doorPart.Parent:FindFirstChildWhichIsA("ProximityPrompt", true)
-                            if doorPrompt then 
-                                fireproximityprompt(doorPrompt)
-                                Log("Kapı açıldı")
-                            end
+                            if doorPrompt then fireproximityprompt(doorPrompt) end
                             
                             firetouchinterest(hrp, doorPart, 0)
                             task.wait(0.05)
@@ -921,7 +751,7 @@ task.spawn(function()
     end
 end)
 
--- Aydınlatma ve ESP Döngüsü (Arka Plan)
+-- Aydınlatma ve ESP Döngüsü
 task.spawn(function()
     while task.wait(1) do
         if not _G.DoorsAI_Running then break end
@@ -931,7 +761,6 @@ task.spawn(function()
                 Lighting.Brightness = 2
                 Lighting.ClockTime = 14
                 Lighting.GlobalShadows = false
-                Log("Fullbright aktif")
             else
                 Lighting.Brightness = 1
                 Lighting.GlobalShadows = true
@@ -949,13 +778,9 @@ task.spawn(function()
                         hl.FillTransparency = 0.3
                         hl.OutlineTransparency = 0.1
                         hl.Parent = v
-                        Log("Entity ESP eklendi: " .. v.Name)
                     elseif not _G.Settings.EntityESP then
                         local hl = v:FindFirstChild("MonsterESP")
-                        if hl then 
-                            hl:Destroy()
-                            Log("Entity ESP kaldırıldı: " .. v.Name)
-                        end
+                        if hl then hl:Destroy() end
                     end
                 end
             end
@@ -963,12 +788,10 @@ task.spawn(function()
     end
 end)
 
--- Çıkış bildirimini göster
 Rayfield:Notify({
-   Title = "Doors Master AI v11.5 FINAL ✅",
-   Content = "Tüm modüller entegre edildi!\n✓ AI Otomasyon\n✓ Şifre Çözme Sistemi\n✓ ESP & Fullbright\n✓ İstatistikler\n✓ KONTROL BUTONLARI EKLENDI\nBaşarılar! 🎮",
-   Duration = 6,
+   Title = "Doors Master AI v11.5 FIXED ✅",
+   Content = "Kontrol paneli ve butonlar aktif edildi!",
+   Duration = 5,
    Image = 4483362458,
 })
 
-Log("=== Doors Master AI v11.5 FINAL Başlatıldı ===")
