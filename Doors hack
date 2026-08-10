@@ -1,5 +1,5 @@
 -- ==========================================================
--- 🚪 DOORS MASTER AI v37.0 — ULTIMATE GODLIKE ++
+-- 🚪 DOORS MASTER AI v37.0 — ULTIMATE GODLIKE ++ (SİSTEM ENTEGRE)
 -- Her şey dahil, profesyonel, kararlı, tüm özellikler.
 -- ==========================================================
 
@@ -15,6 +15,7 @@ local CollectionService = game:GetService("CollectionService")
 local VirtualUser = game:GetService("VirtualUser")
 local SoundService = game:GetService("SoundService")
 local StarterGui = game:GetService("StarterGui")
+local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -42,7 +43,7 @@ _G.Settings = {
     AIEnabled = false,
     Godmode = true,
     AutoOpenDoors = true,
-    AutoPickupItems = true,       -- Anahtar, pil, sağlık, vb.
+    AutoPickupItems = true,
     AutoHide = true,
     AutoSolveLibrary = true,
     AutoProgress = true,
@@ -54,21 +55,21 @@ _G.Settings = {
     SprintSpeed = 48,
     SmoothMove = true,
     AntiAFK = true,
-    BHop = false,                -- Otomatik zıplama
-    WallClimb = false,           -- Duvara tırmanma (deneysel)
+    BHop = false,
+    WallClimb = false,
 
-    -- Algılamalar (Gelişmiş)
+    -- Algılamalar
     EntityESP = true,
     DoorESP = true,
     KeyESP = true,
     ClosetESP = true,
-    ItemESP = true,              -- Tüm eşyalar
+    ItemESP = true,
     HighlightEntities = true,
     Fullbright = true,
     AutoFlashlight = true,
-    XRay = false,                -- Duvarların arkasını gör
+    XRay = false,
 
-    -- Tehditler (Detaylı)
+    -- Tehditler
     SeekDetection = true,
     RushDetection = true,
     AmbushDetection = true,
@@ -76,16 +77,16 @@ _G.Settings = {
     ScreechDetection = true,
     FigureDetection = true,
     HideDetection = true,
-    DupeDetection = true,        -- Dupe kapı kontrolü
-    SnareDetection = true,       -- Tuzaklar
+    DupeDetection = true,
+    SnareDetection = true,
 
     -- Gelişmiş Strateji
-    AvoidanceDistance = 35,      -- Tehdit algılama mesafesi
+    AvoidanceDistance = 35,
     SafeMode = true,
     VerboseLogging = false,
     DebugMode = false,
     AutoRevive = false,
-    FakeLatency = false,         -- Anti-ban (görünür gecikme)
+    FakeLatency = false,
 }
 
 _G.Statistics = {
@@ -117,6 +118,36 @@ _G.GameState = {
     LastEntitySeen = nil,
     ThreatLevel = 0
 }
+
+-- ==================== GÜVENLİ TEMİZLİK (FULL CLEANUP) ====================
+local function FullCleanup()
+    _G.Settings.AIEnabled = false
+    _G.Settings.Godmode = false
+    _G.Settings.XRay = false
+    _G.Settings.DoorESP = false
+    _G.Settings.KeyESP = false
+    _G.Settings.ClosetESP = false
+    _G.Settings.ItemESP = false
+    _G.Settings.HighlightEntities = false
+
+    -- Tüm Workspace içi özel Highlight nesnelerini temizle
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj.Name == "DoorHighlight" or obj.Name == "KeyHighlight" or obj.Name == "ClosetHighlight" or obj.Name == "ItemHighlight" then
+            obj:Destroy()
+        end
+    end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Character then
+            local h = player.Character:FindFirstChild("Highlight")
+            if h then h:Destroy() end
+        end
+    end
+
+    if Character and Humanoid then
+        Humanoid.WalkSpeed = 16
+    end
+end
 
 -- ==================== YARDIMCI FONKSİYONLAR ====================
 local function Log(message, level)
@@ -180,14 +211,6 @@ local function SmoothMoveTo(targetPos, speedOverride, stopDist)
     return false
 end
 
-local function TeleportTo(targetPos)
-    if Character and HumanoidRootPart then
-        HumanoidRootPart.CFrame = CFrame.new(targetPos)
-        return true
-    end
-    return false
-end
-
 -- ==================== ODA / KAPI / EŞYA BULMA ====================
 local function GetCurrentRoom()
     local success, gData = pcall(function() return ReplicatedStorage:FindFirstChild("GameData") end)
@@ -219,16 +242,6 @@ local function FindDoorInRoom(room)
     return nil
 end
 
-local function FindKeyInRoom(room)
-    if not room then return nil end
-    for _, child in ipairs(room:GetDescendants()) do
-        if child.Name:lower():find("key") and child:IsA("BasePart") then
-            return child
-        end
-    end
-    return nil
-end
-
 local function FindClosetInRoom(room)
     if not room then return nil end
     for _, child in ipairs(room:GetDescendants()) do
@@ -255,7 +268,7 @@ local function FindItemsInRoom(room)
     return items
 end
 
--- ==================== DÜŞMAN ALGILAMA (GELİŞMİŞ) ====================
+-- ==================== DÜŞMAN ALGILAMA ====================
 local function DetectEntities()
     local entities = {}
     for _, obj in ipairs(Workspace:GetDescendants()) do
@@ -287,14 +300,13 @@ local function GetEntityDistance(entity)
     return math.huge
 end
 
--- ==================== DOLAP & SAKLANMA (GELİŞMİŞ) ====================
+-- ==================== DOLAP & SAKLANMA ====================
 local function GetClosestCloset()
     local room, _ = GetCurrentRoom()
     if room then
         local closet = FindClosetInRoom(room)
         if closet then return closet end
     end
-    -- Tüm odalarda ara
     local allClosets = {}
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("BasePart") and (obj.Name:lower():find("closet") or obj.Name:lower():find("wardrobe")) then
@@ -316,7 +328,6 @@ local function HideInCloset()
                 fireproximityprompt(prompt)
                 _G.GameState.IsHiding = true
                 _G.Statistics.TimesHidden = _G.Statistics.TimesHidden + 1
-                Log("Saklanıldı (dolap)", "ACTION")
                 return true
             end
         else
@@ -334,23 +345,11 @@ local function LeaveCloset()
         if prompt then
             fireproximityprompt(prompt)
             _G.GameState.IsHiding = false
-            Log("Dolaptan çıkıldı", "ACTION")
         end
     end
 end
 
--- ==================== KÜTÜPHANE ÇÖZÜCÜ (PRO) ====================
-local LibrarySolution = {
-    [1] = "Book1",
-    [2] = "Book2",
-    [3] = "Book3",
-    [4] = "Book4",
-    [5] = "Book5",
-    [6] = "Book6",
-    [7] = "Book7",
-    [8] = "Book8"
-}
-
+-- ==================== KÜTÜPHANE ÇÖZÜCÜ ====================
 local function SolveLibraryPuzzle()
     if not _G.Settings.AutoSolveLibrary then return end
     local room, roomNum = GetCurrentRoom()
@@ -364,8 +363,6 @@ local function SolveLibraryPuzzle()
     end
 
     if #books == 0 then
-        Log("Kütüphanede kitap bulunamadı, alternatif çözüm deneniyor", "WARN")
-        -- Alternatif: tüm prompt'lara tıkla
         for _, prompt in ipairs(room:GetDescendants()) do
             if prompt:IsA("ProximityPrompt") then
                 fireproximityprompt(prompt)
@@ -375,7 +372,6 @@ local function SolveLibraryPuzzle()
         return
     end
 
-    -- Doğru sıralamayı bul (örnek: hepsine tıkla)
     for i, book in ipairs(books) do
         local prompt = book.Parent:FindFirstChildWhichIsA("ProximityPrompt", true)
         if prompt then
@@ -384,10 +380,9 @@ local function SolveLibraryPuzzle()
         end
     end
     _G.Statistics.LibrariesSolved = _G.Statistics.LibrariesSolved + 1
-    Log("Kütüphane çözüldü (sıralı)", "ACTION")
 end
 
--- ==================== SAĞLIK & EŞYA KULLANIMI ====================
+-- ==================== SAĞLIK & EŞYA ====================
 local function UseHealItem()
     if not _G.Settings.AutoUseHeal then return end
     if Humanoid and Humanoid.Health < Humanoid.MaxHealth * 0.5 then
@@ -402,7 +397,6 @@ local function UseHealItem()
                         if prompt then
                             fireproximityprompt(prompt)
                             _G.Statistics.HealsUsed = _G.Statistics.HealsUsed + 1
-                            Log("Sağlık eşyası kullanıldı", "ACTION")
                             return true
                         end
                     else
@@ -416,25 +410,22 @@ local function UseHealItem()
     return false
 end
 
--- ==================== ANA OTOMASYON (GELİŞMİŞ) ====================
+-- ==================== OTOMASYON ADIMI ====================
 local function AutomateStep()
     if not _G.Settings.AIEnabled then return end
     local charPos = GetCharacterPosition()
     local room, roomNum = GetCurrentRoom()
     if not room then return end
 
-    -- 0. Sağlık kontrolü (öncelikli)
     if _G.Settings.AutoUseHeal then
         if UseHealItem() then return end
     end
 
-    -- 1. Kütüphane kontrolü
     if roomNum == 50 then
         SolveLibraryPuzzle()
         return
     end
 
-    -- 2. Düşman algılama ve kaçış (gelişmiş)
     local entities = DetectEntities()
     local dangerDetected = false
     local dangerDistance = _G.Settings.AvoidanceDistance
@@ -446,7 +437,6 @@ local function AutomateStep()
                 _G.GameState.ThreatLevel = math.max(_G.GameState.ThreatLevel, 1)
                 _G.GameState.ActiveEntity = entity
                 _G.GameState.EntityType = entity.Name
-                Log("Tehdit algılandı: " .. entity.Name .. " (mesafe: " .. math.floor(dist) .. ")", "WARN")
 
                 if _G.Settings.AutoHide then
                     if HideInCloset() then
@@ -455,7 +445,6 @@ local function AutomateStep()
                     end
                 end
 
-                -- Kaçış: en yakın dolaba veya geriye doğru
                 local escapeTarget = GetClosestCloset()
                 if escapeTarget then
                     SmoothMoveTo(escapeTarget.Position, _G.Settings.SprintSpeed)
@@ -478,7 +467,6 @@ local function AutomateStep()
         end
     end
 
-    -- 3. Eşya toplama (tüm eşyalar)
     if _G.Settings.AutoPickupItems then
         local items = FindItemsInRoom(room)
         for _, item in ipairs(items) do
@@ -492,10 +480,8 @@ local function AutomateStep()
                         _G.Statistics.KeysCollected = _G.Statistics.KeysCollected + 1
                         _G.GameState.HasKey = true
                     end
-                    Log("Eşya toplandı: " .. item.Name, "ACTION")
                 end
             else
-                -- Eşyaya doğru git (ama önce kapıya gitme)
                 if not FindDoorInRoom(room) or Distance(charPos, FindDoorInRoom(room).Position) > 10 then
                     SmoothMoveTo(item.Position, _G.Settings.MoveSpeed)
                     return
@@ -504,7 +490,6 @@ local function AutomateStep()
         end
     end
 
-    -- 4. Kapıya git ve aç
     if _G.Settings.AutoOpenDoors then
         local door = FindDoorInRoom(room)
         if door then
@@ -517,7 +502,6 @@ local function AutomateStep()
                     if prompt then
                         fireproximityprompt(prompt)
                         _G.Statistics.DoorsOpened = _G.Statistics.DoorsOpened + 1
-                        Log("Kapı açıldı (Oda: " .. roomNum .. ")", "ACTION")
                     end
                 else
                     SmoothMoveTo(doorPos, _G.Settings.MoveSpeed)
@@ -527,7 +511,6 @@ local function AutomateStep()
         end
     end
 
-    -- 5. İlerleme (sonraki odaya geç)
     if _G.Settings.AutoProgress then
         local nextRoom = Workspace.Rooms:FindFirstChild(tostring(roomNum + 1))
         if nextRoom then
@@ -537,22 +520,19 @@ local function AutomateStep()
                 if nextPos then
                     SmoothMoveTo(nextPos.Position, _G.Settings.SprintSpeed)
                     _G.Statistics.RoomsCompleted = _G.Statistics.RoomsCompleted + 1
-                    Log("İlerleniyor: Oda " .. (roomNum + 1), "ACTION")
                 end
             end
         end
     end
 
-    -- 6. Anti-AFK
     if _G.Settings.AntiAFK then
         VirtualUser:CaptureController()
         VirtualUser:ClickButton2(Vector2.new())
     end
 end
 
--- ==================== GÖRSELLER (ESP & FULBRIGHT & XRAY) ====================
+-- ==================== GÖRSELLER ====================
 local function SetupVisuals()
-    -- Fullbright
     if _G.Settings.Fullbright then
         Lighting.Brightness = 2
         Lighting.ClockTime = 12
@@ -561,7 +541,6 @@ local function SetupVisuals()
         Lighting.Ambient = Color3.new(1, 1, 1)
     end
 
-    -- X-Ray (duvarları şeffaf yap)
     if _G.Settings.XRay then
         for _, part in ipairs(Workspace:GetDescendants()) do
             if part:IsA("BasePart") and part.Name:lower():find("wall") then
@@ -571,7 +550,6 @@ local function SetupVisuals()
         end
     end
 
-    -- Entity Highlight
     if _G.Settings.HighlightEntities then
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
@@ -587,7 +565,6 @@ local function SetupVisuals()
         end
     end
 
-    -- Kapı ESP
     if _G.Settings.DoorESP then
         for _, door in ipairs(Workspace:GetDescendants()) do
             if door.Name:lower():find("door") and door:IsA("BasePart") then
@@ -600,7 +577,6 @@ local function SetupVisuals()
         end
     end
 
-    -- Anahtar ESP
     if _G.Settings.KeyESP then
         for _, key in ipairs(Workspace:GetDescendants()) do
             if key.Name:lower():find("key") and key:IsA("BasePart") then
@@ -613,7 +589,6 @@ local function SetupVisuals()
         end
     end
 
-    -- Dolap ESP
     if _G.Settings.ClosetESP then
         for _, closet in ipairs(Workspace:GetDescendants()) do
             if (closet.Name:lower():find("closet") or closet.Name:lower():find("wardrobe")) and closet:IsA("BasePart") then
@@ -626,7 +601,6 @@ local function SetupVisuals()
         end
     end
 
-    -- Tüm eşyalar ESP
     if _G.Settings.ItemESP then
         for _, item in ipairs(Workspace:GetDescendants()) do
             if item:IsA("BasePart") then
@@ -665,7 +639,11 @@ local StatsTab = Window:CreateTab("📊 İstatistik", 4483362458)
 MainTab:CreateToggle({
     Name = "🤖 AI Otomatik Pilot",
     CurrentValue = false,
-    Callback = function(v) _G.Settings.AIEnabled = v end
+    Callback = function(v)
+        _G.Settings.AIEnabled = v
+        isCheatActive = v
+        if ActiveWidget then ActiveWidget.Visible = v end
+    end
 })
 
 MainTab:CreateToggle({
@@ -722,7 +700,6 @@ MainTab:CreateToggle({
     Callback = function(v) _G.Settings.BHop = v end
 })
 
--- Hareket Ayarları
 MainTab:CreateSlider({
     Name = "🏃 Normal Hız",
     Range = {10, 60},
@@ -753,7 +730,7 @@ MainTab:CreateSlider({
     Callback = function(v) _G.Settings.AvoidanceDistance = v end
 })
 
--- Savaş / Tehdit Tab
+-- Savaş Tab
 CombatTab:CreateToggle({
     Name = "👁️ Seek Algılama",
     CurrentValue = true,
@@ -893,54 +870,130 @@ StatsTab:CreateButton({
     end
 })
 
--- ==================== ANA DÖNGÜ (GÜVENLİ) ====================
+-- ==========================================
+-- CYBERPUNK WIDGET & KONTROL SİSTEMİ
+-- ==========================================
+if CoreGui:FindFirstChild("DoorsMasterAI_Gui") then
+    CoreGui.DoorsMasterAI_Gui:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "DoorsMasterAI_Gui"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+local isCheatActive = false
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Parent = ScreenGui
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+ToggleBtn.Position = UDim2.new(0, 25, 0.5, -30)
+ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Text = "⚡"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 229, 255)
+ToggleBtn.TextSize = 22
+ToggleBtn.Draggable = true
+ToggleBtn.AutoButtonColor = false
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCorner.Parent = ToggleBtn
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Parent = ToggleBtn
+ToggleStroke.Color = Color3.fromRGB(0, 229, 255)
+ToggleStroke.Thickness = 2
+
+-- Aktif Çalışan Hile Durum Paneli (Çarpı Butonlu Widget)
+ActiveWidget = Instance.new("Frame")
+ActiveWidget.Name = "ActiveWidget"
+ActiveWidget.Parent = ScreenGui
+ActiveWidget.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
+ActiveWidget.Position = UDim2.new(0.5, -170, 0, 20)
+ActiveWidget.Size = UDim2.new(0, 340, 0, 50)
+ActiveWidget.Visible = false
+ActiveWidget.Draggable = true
+
+local ActiveWidgetCorner = Instance.new("UICorner")
+ActiveWidgetCorner.CornerRadius = UDim.new(0, 10)
+ActiveWidgetCorner.Parent = ActiveWidget
+
+local ActiveWidgetStroke = Instance.new("UIStroke")
+ActiveWidgetStroke.Parent = ActiveWidget
+ActiveWidgetStroke.Color = Color3.fromRGB(0, 255, 128)
+ActiveWidgetStroke.Thickness = 1.5
+
+local ActiveIndicatorText = Instance.new("TextLabel")
+ActiveIndicatorText.Parent = ActiveWidget
+ActiveIndicatorText.BackgroundTransparency = 1
+ActiveIndicatorText.Position = UDim2.new(0, 12, 0, 0)
+ActiveIndicatorText.Size = UDim2.new(1, -60, 1, 0)
+ActiveIndicatorText.Font = Enum.Font.GothamBold
+ActiveIndicatorText.Text = "Aktif: Doors Master AI v37"
+ActiveIndicatorText.TextColor3 = Color3.fromRGB(0, 255, 128)
+ActiveIndicatorText.TextSize = 13
+ActiveIndicatorText.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Çarpı Butonu (Basınca hileleri tam temizler ve Hub ekranına döner)
+local ActiveCloseBtn = Instance.new("TextButton")
+ActiveCloseBtn.Name = "ActiveCloseBtn"
+ActiveCloseBtn.Parent = ActiveWidget
+ActiveCloseBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+ActiveCloseBtn.Position = UDim2.new(1, -42, 0.5, -16)
+ActiveCloseBtn.Size = UDim2.new(0, 32, 0, 32)
+ActiveCloseBtn.Font = Enum.Font.GothamBold
+ActiveCloseBtn.Text = "✕"
+ActiveCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ActiveCloseBtn.TextSize = 14
+
+local ActiveCloseCorner = Instance.new("UICorner")
+ActiveCloseCorner.CornerRadius = UDim.new(0, 6)
+ActiveCloseCorner.Parent = ActiveCloseBtn
+
+ActiveCloseBtn.MouseButton1Click:Connect(function()
+    isCheatActive = false
+    FullCleanup()
+    ActiveWidget.Visible = false
+    if Window then
+        Rayfield:Toggle()
+    end
+end)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    if Window then
+        Rayfield:Toggle()
+    end
+end)
+
+-- ==================== ANA DÖNGÜ ====================
 RunService.RenderStepped:Connect(function()
     SafeExecute(function()
-        -- Godmode
         if _G.Settings.Godmode and Humanoid then
             Humanoid.Health = Humanoid.MaxHealth
             if Humanoid.Health <= 0 then
                 Humanoid.Health = Humanoid.MaxHealth
                 _G.Statistics.Deaths = _G.Statistics.Deaths + 1
-                Log("Ölüm engellendi (Godmode)", "WARN")
             end
         end
 
-        -- BHop
         if _G.Settings.BHop and Humanoid then
             Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
         end
 
-        -- Otomasyon
         if _G.Settings.AIEnabled then
             AutomateStep()
         end
 
-        -- Görsel güncelleme
         SetupVisuals()
     end, "AnaDöngü")
 end)
 
--- ==================== OLAY YAKALAMA (DÜŞMAN SIRASINDA) ====================
-Players.PlayerAdded:Connect(function(player)
-    if player ~= LocalPlayer then
-        player.CharacterAdded:Connect(function(char)
-            if _G.Settings.HighlightEntities then
-                local highlight = char:FindFirstChild("Highlight") or Instance.new("Highlight")
-                highlight.Parent = char
-                highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                highlight.FillTransparency = 0.5
-            end
-        end)
-    end
-end)
-
--- ==================== BAŞLANGIÇ MESAJI ====================
-print("==========================================")
-print("🚪 DOORS MASTER AI v37.0 ULTIMATE GODLIKE ++")
-print("✅ Tüm özellikler aktif ve korumalı")
-print("📦 Sürüm: " .. _G.DoorsAI.Version)
-print("⚙️  Ayarlar: _G.Settings ile değiştir")
-print("📊 İstatistikler: _G.Statistics")
-print("⚠️  Hata yönetimi aktif, güvenli çalışır")
-print("==========================================")
+Rayfield:LoadConfiguration()
+Rayfield:Notify({
+    Title = "Doors Master AI v37.0",
+    Content = "Sistem başarıyla yüklendi ve entegre edildi!",
+    Duration = 6
+})
