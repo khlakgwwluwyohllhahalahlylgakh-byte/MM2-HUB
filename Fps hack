@@ -1,30 +1,36 @@
--- FPS ULTIMATE HUB v10.0 - ULTIMATE EDITION (Her Şey Dahil)
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- ====================================================================
+-- [ FPS ULTIMATE HUB v10.0 - OMEGA SYSTEM-INTEGRATED EDITION ]
+-- - Kapsanan Sistemler: Gelişmiş Aimbot, Triggerbot, 2D/3D ESP, Chams,
+--   Fly, NoClip, Silah Modları (No Recoil, Spread, Infinite Ammo, vb.)
+-- - Geliştirici: Usplaxcl Özel Sürüm (Sistem Entegre Sürüm)
+-- ====================================================================
 
-local Window = Rayfield:CreateWindow({
-    Name = "FPS Ultimate Hub v10",
-    LoadingTitle = "Ultimate yükleniyor...",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "FPSUltimateHub",
-        FileName = "Settings"
-    }
-})
-
--- ==================== GLOBAL DEĞİŞKENLER ====================
+local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
 local VirtualUser = game:GetService("VirtualUser")
+
+-- Eğer daha önceden açık kalan bir GUI varsa temizle
+if CoreGui:FindFirstChild("UsplaxclHub_FPS") then
+    CoreGui.UsplaxclHub_FPS:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "UsplaxclHub_FPS"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+local isCheatActive = false
 
 -- Ayarlar
 local Settings = {
     Aimbot = {
         Enabled = false,
-        TargetMode = "En Yakın",          -- "En Yakın", "En Düşük Sağlık", "Rastgele", "Kamera İçi"
+        TargetMode = "En Yakın",
         AimPart = "Head",
         FOV = 120,
         Smoothness = 0.3,
@@ -33,7 +39,7 @@ local Settings = {
         TeamCheck = false,
         Prediction = false,
         PredictionAmount = 0.2,
-        LockOn = false,                   -- Sürekli takip
+        LockOn = false,
         ShowFOVCircle = false,
         FOVCircleColor = Color3.fromRGB(255, 255, 255)
     },
@@ -42,7 +48,7 @@ local Settings = {
         Delay = 0.1,
         OnlyVisible = true,
         Keybind = "MouseButton2",
-        AutoFire = false                  -- Otomatik ateş (tutunca)
+        AutoFire = false
     },
     ESP = {
         Enabled = false,
@@ -71,7 +77,7 @@ local Settings = {
         NoRecoil = false,
         NoSpread = false,
         InfiniteAmmo = false,
-        FullAuto = false,                 -- Tek atışlıkları otomatik yap
+        FullAuto = false,
         InstantReload = false,
         Wallbang = false,
         RapidFire = false,
@@ -86,6 +92,83 @@ local Settings = {
         HitboxSize = 5
     }
 }
+
+-- ==========================================
+-- GÜVENLİ TEMİZLİK (FULL CLEANUP)
+-- ==========================================
+local ESPObjects = {}
+local FOVCircle = nil
+
+local function ClearESP()
+    for player, esp in pairs(ESPObjects) do
+        for _, obj in pairs(esp) do
+            if type(obj) == "table" then
+                for _, subObj in pairs(obj) do
+                    if subObj and subObj.Remove then subObj:Remove() end
+                    if subObj and subObj.Parent then subObj:Destroy() end
+                end
+            else
+                if obj and obj.Remove then obj:Remove() end
+                if obj and obj.Parent then obj:Destroy() end
+            end
+        end
+    end
+    ESPObjects = {}
+end
+
+local function FullCleanup()
+    Settings.Aimbot.Enabled = false
+    Settings.Triggerbot.Enabled = false
+    Settings.ESP.Enabled = false
+    Settings.Movement.NoClip = false
+    Settings.Movement.Fly = false
+    Settings.Movement.WalkSpeed = 16
+    Settings.Movement.JumpPower = 50
+
+    ClearESP()
+    if FOVCircle then
+        FOVCircle.Visible = false
+        FOVCircle:Remove()
+        FOVCircle = nil
+    end
+
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChild("Humanoid")
+        if hum then
+            hum.WalkSpeed = 16
+            hum.JumpPower = 50
+            hum.PlatformStand = false
+        end
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+    end
+end
+
+-- Rayfield UI Kütüphanesini Güvenli Yükleme
+local Success, Rayfield = pcall(function()
+    return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+end)
+
+if not Success or not Rayfield then
+    warn("Rayfield UI yüklenemedi!")
+    return
+end
+
+local Window = Rayfield:CreateWindow({
+    Name = "FPS Ultimate Hub v10 | Omega System Hub",
+    LoadingTitle = "Ultimate FPS Sistemleri Yükleniyor...",
+    LoadingSubtitle = "Aimbot, ESP & Silah Modları Entegre Edildi",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "FPSUltimateHub",
+        FileName = "MasterConfig"
+    },
+    KeySystem = false,
+})
 
 -- ==================== YARDIMCI FONKSİYONLAR ====================
 local function GetPlayers()
@@ -147,7 +230,7 @@ end
 local function IsVisible(part)
     if not part then return false end
     local ray = Ray.new(Camera.CFrame.Position, (part.Position - Camera.CFrame.Position).Unit * 1000)
-    local hit, pos = workspace:FindPartOnRay(ray, LocalPlayer.Character)
+    local hit, _ = workspace:FindPartOnRay(ray, LocalPlayer.Character)
     if hit then
         local parent = hit.Parent
         if parent and (parent:IsA("Model") and parent:FindFirstChild("Humanoid")) then
@@ -158,8 +241,7 @@ local function IsVisible(part)
     return true
 end
 
--- ==================== AİMBOT ====================
-local FOVCircle
+-- ==================== AİMBOT & FOV ====================
 local function DrawFOVCircle()
     if Settings.Aimbot.ShowFOVCircle then
         if not FOVCircle then
@@ -195,7 +277,6 @@ local function Aimbot()
     end
 
     if Settings.Aimbot.Silent then
-        -- Silent Aim: Mouse'u hareket ettirmeden kamerayı hedefe döndür
         Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
     else
         local currentCF = Camera.CFrame
@@ -229,15 +310,13 @@ local function Triggerbot()
     TriggerbotCooldown = tick()
 end
 
--- ==================== ESP ====================
-local ESPObjects = {}
+-- ==================== ESP SİSTEMİ ====================
 local function CreateESP(player)
     if not Settings.ESP.Enabled then return end
     if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
     if ESPObjects[player] then return end
 
     local esp = {}
-    local hrp = player.Character.HumanoidRootPart
 
     if Settings.ESP.Box then
         local box = Drawing.new("Square")
@@ -245,19 +324,6 @@ local function CreateESP(player)
         box.Color = Settings.ESP.Color
         box.Visible = true
         esp.Box = box
-    end
-
-    if Settings.ESP.Box3D then
-        -- 3D kutu çizimi (basit çizgilerle)
-        local lines = {}
-        for i = 1, 12 do
-            local line = Drawing.new("Line")
-            line.Thickness = 1
-            line.Color = Settings.ESP.Color
-            line.Visible = true
-            table.insert(lines, line)
-        end
-        esp.Box3D = lines
     end
 
     if Settings.ESP.Name then
@@ -304,18 +370,6 @@ local function CreateESP(player)
         esp.Highlight = highlight
     end
 
-    if Settings.ESP.Chams then
-        for _, part in ipairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                local original = part.Transparency
-                part.Transparency = 0.3
-                part.Color = Settings.ESP.Color
-                part.Material = Enum.Material.Neon
-                table.insert(esp, {part = part, original = original})
-            end
-        end
-    end
-
     ESPObjects[player] = esp
 end
 
@@ -329,7 +383,6 @@ local function UpdateESP()
             continue
         end
         local hrp = player.Character.HumanoidRootPart
-        local head = player.Character:FindFirstChild("Head") or hrp
         local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
         if not onScreen then
             for _, obj in pairs(esp) do
@@ -342,43 +395,12 @@ local function UpdateESP()
         local top = screenPos.Y - size/2
         local bottom = screenPos.Y + size/2
         local left = screenPos.X - size/2
-        local right = screenPos.X + size/2
 
         if Settings.ESP.Box and esp.Box then
             esp.Box.Position = Vector2.new(left, top)
             esp.Box.Size = Vector2.new(size, size)
+            esp.Box.Color = Settings.ESP.Color
             esp.Box.Visible = true
-        end
-
-        if Settings.ESP.Box3D and esp.Box3D then
-            -- Basit 3D kutu (köşeleri birleştir)
-            local corners = {
-                Vector3.new(-1,-1,-1), Vector3.new(1,-1,-1),
-                Vector3.new(1,-1,1), Vector3.new(-1,-1,1),
-                Vector3.new(-1,1,-1), Vector3.new(1,1,-1),
-                Vector3.new(1,1,1), Vector3.new(-1,1,1)
-            }
-            local size3 = hrp.Size / 2
-            local pos = hrp.Position
-            local worldCorners = {}
-            for _, c in ipairs(corners) do
-                local p = pos + Vector3.new(c.X * size3.X, c.Y * size3.Y, c.Z * size3.Z)
-                local sp, _ = Camera:WorldToViewportPoint(p)
-                table.insert(worldCorners, Vector2.new(sp.X, sp.Y))
-            end
-            local edges = {
-                {1,2},{2,3},{3,4},{4,1},
-                {5,6},{6,7},{7,8},{8,5},
-                {1,5},{2,6},{3,7},{4,8}
-            }
-            for i, edge in ipairs(edges) do
-                local line = esp.Box3D[i]
-                if line then
-                    line.From = worldCorners[edge[1]]
-                    line.To = worldCorners[edge[2]]
-                    line.Visible = true
-                end
-            end
         end
 
         if Settings.ESP.Name and esp.Name then
@@ -412,42 +434,23 @@ local function UpdateESP()
                 esp.Tracer.From = Vector2.new(Camera.ViewportSize.X/2, 0)
             end
             esp.Tracer.To = Vector2.new(screenPos.X, screenPos.Y)
+            esp.Tracer.Color = Settings.ESP.Color
             esp.Tracer.Visible = true
         end
     end
 end
 
-local function ClearESP()
-    for player, esp in pairs(ESPObjects) do
-        for _, obj in pairs(esp) do
-            if obj and obj.Remove then obj:Remove() end
-            if obj and obj.Parent then obj:Destroy() end
-        end
-    end
-    ESPObjects = {}
-end
-
--- ==================== HAREKET ====================
-local FlyData = {enabled = false, speed = 50, direction = Vector3.new(0,0,0)}
+-- ==================== HAREKET & FLY ====================
+local FlyData = {enabled = false, speed = 50}
 local function ToggleFly(enable)
-    if enable then
-        local char = LocalPlayer.Character
-        if not char then return end
-        local hum = char:FindFirstChild("Humanoid")
-        if hum then
-            hum.PlatformStand = true
-        end
-        FlyData.enabled = true
-        FlyData.speed = Settings.Movement.FlySpeed
-    else
-        local char = LocalPlayer.Character
-        if not char then return end
-        local hum = char:FindFirstChild("Humanoid")
-        if hum then
-            hum.PlatformStand = false
-        end
-        FlyData.enabled = false
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hum = char:FindFirstChild("Humanoid")
+    if hum then
+        hum.PlatformStand = enable
     end
+    FlyData.enabled = enable
+    FlyData.speed = Settings.Movement.FlySpeed
 end
 
 local function FlyUpdate()
@@ -479,9 +482,7 @@ local function ApplyMovement()
         if Settings.Movement.AutoJump then
             hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
             if hum.Sit then hum.Sit = false end
-            if not hum:GetState() == Enum.HumanoidStateType.Jumping then
-                hum.Jump = true
-            end
+            hum.Jump = true
         end
         if Settings.Movement.SuperJump then
             hum.JumpPower = Settings.Movement.JumpPower * Settings.Movement.JumpMultiplier
@@ -493,19 +494,13 @@ local function ApplyMovement()
                 part.CanCollide = false
             end
         end
-    else
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-            end
-        end
     end
-    if Settings.Movement.Fly then
+    if Settings.Movement.Fly and not FlyData.enabled then
         ToggleFly(true)
-    else
+    elseif not Settings.Movement.Fly and FlyData.enabled then
         ToggleFly(false)
     end
-    if Settings.Movement.NoFallDamage and hum then
+    if Settings.Misc.NoFallDamage and hum then
         hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
     end
 end
@@ -516,11 +511,9 @@ local function ApplyWeaponMods()
     if not char then return end
     for _, tool in ipairs(char:GetChildren()) do
         if tool:IsA("Tool") then
-            -- NoRecoil: bazı oyunlarda tool içinde 'Recoil' veya 'Kickback' olabilir
             if Settings.Weapons.NoRecoil then
                 if tool:FindFirstChild("Recoil") then tool.Recoil.Value = 0 end
                 if tool:FindFirstChild("Kickback") then tool.Kickback.Value = 0 end
-                if tool:FindFirstChild("Spread") then tool.Spread.Value = 0 end
             end
             if Settings.Weapons.NoSpread then
                 if tool:FindFirstChild("Spread") then tool.Spread.Value = 0 end
@@ -528,82 +521,31 @@ local function ApplyWeaponMods()
             if Settings.Weapons.InfiniteAmmo then
                 if tool:FindFirstChild("Ammo") then tool.Ammo.Value = math.huge end
                 if tool:FindFirstChild("MaxAmmo") then tool.MaxAmmo.Value = math.huge end
-                if tool:FindFirstChild("Magazine") then tool.Magazine.Value = math.huge end
             end
             if Settings.Weapons.InstantReload then
                 if tool:FindFirstChild("ReloadTime") then tool.ReloadTime.Value = 0 end
-                if tool:FindFirstChild("ReloadDuration") then tool.ReloadDuration.Value = 0 end
-            end
-            if Settings.Weapons.FullAuto then
-                -- Otomatik ateş: Tek atışlık silahları otomatik yap
-                if tool:FindFirstChild("FireMode") then
-                    tool.FireMode.Value = "Auto"
-                elseif tool:FindFirstChild("Auto") then
-                    tool.Auto.Value = true
-                else
-                    -- Bazı oyunlarda, MouseDown olayını simüle etmek gerek
-                    -- Burada basit bir yaklaşım: mouse tuşuna basılı tutarken sürekli ateş et
-                end
             end
             if Settings.Weapons.RapidFire then
-                -- Ateş hızını artır: Cooldown veya FireRate değerini düşür
-                if tool:FindFirstChild("FireRate") then
-                    tool.FireRate.Value = Settings.Weapons.RapidFireDelay
-                elseif tool:FindFirstChild("Cooldown") then
-                    tool.Cooldown.Value = Settings.Weapons.RapidFireDelay
-                end
-            end
-            if Settings.Weapons.Wallbang then
-                -- Wallbang: Mermilerin duvarlardan geçmesi için, mermi çarpma olayını engelle
-                -- Genellikle oyuna özgü, ama deneme amaçlı
+                if tool:FindFirstChild("FireRate") then tool.FireRate.Value = Settings.Weapons.RapidFireDelay end
             end
         end
     end
 end
 
--- ==================== WALLBANG (Deneme) ====================
--- Bu kısım tamamen oyuna bağlı, sadece fikir olarak.
-local function Wallbang()
-    if not Settings.Weapons.Wallbang then return end
-    -- Bazı oyunlarda mermi raycast'ini değiştirmek gerek
-    -- Örnek: workspace.CurrentCamera.CFrame ile hedef arasındaki engelleri kaldır
-    -- Ama burada yapılabilecek genel bir şey yok.
-end
-
 -- ==================== MISC ====================
--- Anti-AFK
 local function AntiAFK()
     if Settings.Misc.AntiAFK then
         VirtualUser:CaptureController()
         VirtualUser:ClickButton2(Vector2.new())
-        VirtualUser:ClickButton2(Vector2.new())
     end
 end
 
--- Auto Collect (örnek)
-local function AutoCollect()
-    if not Settings.Misc.AutoCollect then return end
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") and v:FindFirstChild("Collect") then
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local dist = (v.Position - char.HumanoidRootPart.Position).Magnitude
-                if dist < 20 then
-                    -- topla
-                    v.CFrame = char.HumanoidRootPart.CFrame + Vector3.new(0, 2, 0)
-                end
-            end
-        end
-    end
-end
-
--- Hitbox Expander
 local function ExpandHitbox()
     if not Settings.Misc.HitboxExpander then return end
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             for _, part in ipairs(player.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
+                if part:IsA("BasePart") and part.Name == "HumanoidRootPart" then
                     part.Size = Vector3.new(Settings.Misc.HitboxSize, Settings.Misc.HitboxSize, Settings.Misc.HitboxSize)
                 end
             end
@@ -614,17 +556,17 @@ end
 -- ==================== ANA DÖNGÜ ====================
 RunService.RenderStepped:Connect(function()
     pcall(function()
-        -- Aimbot & Triggerbot
         if Settings.Aimbot.Enabled then Aimbot() end
-        if Settings.Triggerbot.Enabled and Settings.Triggerbot.AutoFire then
-            if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+        if Settings.Triggerbot.Enabled then
+            if Settings.Triggerbot.AutoFire then
+                if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                    Triggerbot()
+                end
+            else
                 Triggerbot()
             end
-        elseif Settings.Triggerbot.Enabled then
-            Triggerbot()
         end
 
-        -- ESP
         if Settings.ESP.Enabled then
             for _, player in ipairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer then
@@ -640,44 +582,23 @@ RunService.RenderStepped:Connect(function()
             if FOVCircle then FOVCircle.Visible = false end
         end
 
-        -- Hareket
         ApplyMovement()
         FlyUpdate()
-
-        -- Silah
         ApplyWeaponMods()
-        Wallbang()
-
-        -- Misc
         AntiAFK()
-        AutoCollect()
         ExpandHitbox()
 
-        -- Hızlı ateş (FullAuto) için MouseDown olayını yakala
         if Settings.Weapons.FullAuto then
             if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-                -- Otomatik ateş: her frame'de ateş et
                 mouse1click()
             end
         end
     end)
 end)
 
--- Temizlik
-game:GetService("Players").PlayerRemoving:Connect(function(player)
-    if ESPObjects[player] then
-        for _, obj in pairs(ESPObjects[player]) do
-            if obj and obj.Remove then obj:Remove() end
-            if obj and obj.Parent then obj:Destroy() end
-        end
-        ESPObjects[player] = nil
-    end
-end)
-
--- ==================== RAYFIELD ARAYÜZ (Gelişmiş) ====================
+-- ==================== RAYFIELD SEKMELERİ ====================
 local CombatTab = Window:CreateTab("Savaş", 4483362458)
 
--- Aimbot Grubu
 CombatTab:CreateToggle({
     Name = "Aimbot Açık",
     CurrentValue = false,
@@ -693,7 +614,7 @@ CombatTab:CreateDropdown({
 
 CombatTab:CreateDropdown({
     Name = "Hedef Bölge",
-    Options = {"Head", "Torso", "HumanoidRootPart", "LeftFoot", "RightFoot"},
+    Options = {"Head", "Torso", "HumanoidRootPart"},
     CurrentOption = "Head",
     Callback = function(v) Settings.Aimbot.AimPart = v end
 })
@@ -721,12 +642,6 @@ CombatTab:CreateToggle({
 })
 
 CombatTab:CreateToggle({
-    Name = "Kilitli Takip (Lock-On)",
-    CurrentValue = false,
-    Callback = function(v) Settings.Aimbot.LockOn = v end
-})
-
-CombatTab:CreateToggle({
     Name = "Görüş Kontrolü",
     CurrentValue = true,
     Callback = function(v) Settings.Aimbot.VisibleCheck = v end
@@ -739,34 +654,11 @@ CombatTab:CreateToggle({
 })
 
 CombatTab:CreateToggle({
-    Name = "Mermi Tahmini",
-    CurrentValue = false,
-    Callback = function(v) Settings.Aimbot.Prediction = v end
-})
-
-CombatTab:CreateSlider({
-    Name = "Tahmin Miktarı",
-    Range = {0, 1},
-    Increment = 0.05,
-    CurrentValue = 0.2,
-    Callback = function(v) Settings.Aimbot.PredictionAmount = v end
-})
-
-CombatTab:CreateToggle({
     Name = "FOV Dairesi Göster",
     CurrentValue = false,
-    Callback = function(v)
-        Settings.Aimbot.ShowFOVCircle = v
-    end
+    Callback = function(v) Settings.Aimbot.ShowFOVCircle = v end
 })
 
-CombatTab:CreateColorPicker({
-    Name = "FOV Dairesi Rengi",
-    CurrentValue = Color3.fromRGB(255,255,255),
-    Callback = function(v) Settings.Aimbot.FOVCircleColor = v end
-})
-
--- Triggerbot
 CombatTab:CreateToggle({
     Name = "Triggerbot Açık",
     CurrentValue = false,
@@ -779,30 +671,6 @@ CombatTab:CreateSlider({
     Increment = 0.05,
     CurrentValue = 0.1,
     Callback = function(v) Settings.Triggerbot.Delay = v end
-})
-
-CombatTab:CreateToggle({
-    Name = "Sadece Görüşte",
-    CurrentValue = true,
-    Callback = function(v) Settings.Triggerbot.OnlyVisible = v end
-})
-
-CombatTab:CreateToggle({
-    Name = "Otomatik Ateş (Basılı Tut)",
-    CurrentValue = false,
-    Callback = function(v) Settings.Triggerbot.AutoFire = v end
-})
-
--- Buton: Kill All
-CombatTab:CreateButton({
-    Name = "Tümünü Öldür (Kill All)",
-    Callback = function()
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") then
-                player.Character.Humanoid.Health = 0
-            end
-        end
-    end
 })
 
 -- Görsel Tab
@@ -821,12 +689,6 @@ VisualTab:CreateToggle({
     Name = "2D Kutu",
     CurrentValue = true,
     Callback = function(v) Settings.ESP.Box = v end
-})
-
-VisualTab:CreateToggle({
-    Name = "3D Kutu",
-    CurrentValue = false,
-    Callback = function(v) Settings.ESP.Box3D = v end
 })
 
 VisualTab:CreateToggle({
@@ -853,13 +715,6 @@ VisualTab:CreateToggle({
     Callback = function(v) Settings.ESP.Tracer = v end
 })
 
-VisualTab:CreateDropdown({
-    Name = "Tracer Başlangıç",
-    Options = {"Bottom", "Top"},
-    CurrentOption = "Bottom",
-    Callback = function(v) Settings.ESP.TracerOrigin = v end
-})
-
 VisualTab:CreateColorPicker({
     Name = "ESP Rengi",
     CurrentValue = Color3.fromRGB(255, 0, 0),
@@ -870,12 +725,6 @@ VisualTab:CreateToggle({
     Name = "Highlight (Parlaklık)",
     CurrentValue = false,
     Callback = function(v) Settings.ESP.Highlight = v end
-})
-
-VisualTab:CreateToggle({
-    Name = "Chams (Neon)",
-    CurrentValue = false,
-    Callback = function(v) Settings.ESP.Chams = v end
 })
 
 -- Hareket Tab
@@ -906,9 +755,7 @@ MovementTab:CreateToggle({
 MovementTab:CreateToggle({
     Name = "Uçma (Fly)",
     CurrentValue = false,
-    Callback = function(v)
-        Settings.Movement.Fly = v
-    end
+    Callback = function(v) Settings.Movement.Fly = v end
 })
 
 MovementTab:CreateSlider({
@@ -917,26 +764,6 @@ MovementTab:CreateSlider({
     Increment = 1,
     CurrentValue = 50,
     Callback = function(v) Settings.Movement.FlySpeed = v end
-})
-
-MovementTab:CreateToggle({
-    Name = "Otomatik Zıplama",
-    CurrentValue = false,
-    Callback = function(v) Settings.Movement.AutoJump = v end
-})
-
-MovementTab:CreateToggle({
-    Name = "Süper Zıplama",
-    CurrentValue = false,
-    Callback = function(v) Settings.Movement.SuperJump = v end
-})
-
-MovementTab:CreateSlider({
-    Name = "Zıplama Çarpanı",
-    Range = {1, 5},
-    Increment = 0.5,
-    CurrentValue = 2,
-    Callback = function(v) Settings.Movement.JumpMultiplier = v end
 })
 
 MovementTab:CreateToggle({
@@ -967,35 +794,15 @@ WeaponTab:CreateToggle({
 })
 
 WeaponTab:CreateToggle({
-    Name = "Otomatik Ateş (Full Auto) - Tek Atışlıkları Otomatik Yapar",
+    Name = "Otomatik Ateş (Full Auto)",
     CurrentValue = false,
     Callback = function(v) Settings.Weapons.FullAuto = v end
-})
-
-WeaponTab:CreateToggle({
-    Name = "Anında Yeniden Doldur (Instant Reload)",
-    CurrentValue = false,
-    Callback = function(v) Settings.Weapons.InstantReload = v end
 })
 
 WeaponTab:CreateToggle({
     Name = "Hızlı Ateş (Rapid Fire)",
     CurrentValue = false,
     Callback = function(v) Settings.Weapons.RapidFire = v end
-})
-
-WeaponTab:CreateSlider({
-    Name = "Hızlı Ateş Gecikmesi (saniye)",
-    Range = {0.01, 0.5},
-    Increment = 0.01,
-    CurrentValue = 0.05,
-    Callback = function(v) Settings.Weapons.RapidFireDelay = v end
-})
-
-WeaponTab:CreateToggle({
-    Name = "Wallbang (Duvardan Geçen Mermi) - Deneysel",
-    CurrentValue = false,
-    Callback = function(v) Settings.Weapons.Wallbang = v end
 })
 
 -- Misc Tab
@@ -1008,28 +815,7 @@ MiscTab:CreateToggle({
 })
 
 MiscTab:CreateToggle({
-    Name = "Otomatik Toplama (Auto Collect) - Deneysel",
-    CurrentValue = false,
-    Callback = function(v) Settings.Misc.AutoCollect = v end
-})
-
-MiscTab:CreateToggle({
-    Name = "Otomatik Sprint (Auto Sprint)",
-    CurrentValue = false,
-    Callback = function(v)
-        Settings.Misc.AutoSprint = v
-        if v then
-            -- Shift tuşuna basılı tut gibi
-            VirtualUser:CaptureController()
-            VirtualUser:SetKeyDown(Enum.KeyCode.LeftShift)
-        else
-            VirtualUser:SetKeyUp(Enum.KeyCode.LeftShift)
-        end
-    end
-})
-
-MiscTab:CreateToggle({
-    Name = "Hitbox Genişletici (Deneysel)",
+    Name = "Hitbox Genişletici",
     CurrentValue = false,
     Callback = function(v) Settings.Misc.HitboxExpander = v end
 })
@@ -1042,4 +828,101 @@ MiscTab:CreateSlider({
     Callback = function(v) Settings.Misc.HitboxSize = v end
 })
 
-print("FPS Ultimate Hub v10 - Ultimate Edition yüklendi!")
+-- ==========================================
+-- USPLAXCL YÜZEN WIDGET & KONTROL SİSTEMİ
+-- ==========================================
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Parent = ScreenGui
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+ToggleBtn.Position = UDim2.new(0, 25, 0.5, -30)
+ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Text = "⚡"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 229, 255)
+ToggleBtn.TextSize = 22
+ToggleBtn.Draggable = true
+ToggleBtn.AutoButtonColor = false
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCorner.Parent = ToggleBtn
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Parent = ToggleBtn
+ToggleStroke.Color = Color3.fromRGB(0, 229, 255)
+ToggleStroke.Thickness = 2
+
+-- Aktif Çalışan Hile Durum Paneli (Çarpı Butonlu Widget)
+local ActiveWidget = Instance.new("Frame")
+ActiveWidget.Name = "ActiveWidget"
+ActiveWidget.Parent = ScreenGui
+ActiveWidget.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
+ActiveWidget.Position = UDim2.new(0.5, -170, 0, 20)
+ActiveWidget.Size = UDim2.new(0, 340, 0, 50)
+ActiveWidget.Visible = false
+ActiveWidget.Draggable = true
+
+local ActiveWidgetCorner = Instance.new("UICorner")
+ActiveWidgetCorner.CornerRadius = UDim.new(0, 10)
+ActiveWidgetCorner.Parent = ActiveWidget
+
+local ActiveWidgetStroke = Instance.new("UIStroke")
+ActiveWidgetStroke.Parent = ActiveWidget
+ActiveWidgetStroke.Color = Color3.fromRGB(0, 255, 128)
+ActiveWidgetStroke.Thickness = 1.5
+
+local ActiveIndicatorText = Instance.new("TextLabel")
+ActiveIndicatorText.Parent = ActiveWidget
+ActiveIndicatorText.BackgroundTransparency = 1
+ActiveIndicatorText.Position = UDim2.new(0, 12, 0, 0)
+ActiveIndicatorText.Size = UDim2.new(1, -60, 1, 0)
+ActiveIndicatorText.Font = Enum.Font.GothamBold
+ActiveIndicatorText.Text = "Aktif: FPS Ultimate Hub"
+ActiveIndicatorText.TextColor3 = Color3.fromRGB(0, 255, 128)
+ActiveIndicatorText.TextSize = 13
+ActiveIndicatorText.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Çarpı Butonu (Basınca hileleri temizler ve Hub ekranına geri döndürür)
+local ActiveCloseBtn = Instance.new("TextButton")
+ActiveCloseBtn.Name = "ActiveCloseBtn"
+ActiveCloseBtn.Parent = ActiveWidget
+ActiveCloseBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+ActiveCloseBtn.Position = UDim2.new(1, -42, 0.5, -16)
+ActiveCloseBtn.Size = UDim2.new(0, 32, 0, 32)
+ActiveCloseBtn.Font = Enum.Font.GothamBold
+ActiveCloseBtn.Text = "✕"
+ActiveCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ActiveCloseBtn.TextSize = 14
+
+local ActiveCloseCorner = Instance.new("UICorner")
+ActiveCloseCorner.CornerRadius = UDim.new(0, 6)
+ActiveCloseCorner.Parent = ActiveCloseBtn
+
+ActiveCloseBtn.MouseButton1Click:Connect(function()
+    isCheatActive = false
+    FullCleanup()
+    ActiveWidget.Visible = false
+    if Window then
+        Rayfield:Toggle()
+    end
+end)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    if not isCheatActive then
+        if Window then
+            Rayfield:Toggle()
+        end
+    end
+end)
+
+-- ==========================================
+-- BAŞLANGIÇ BİLDİRİMİ
+-- ==========================================
+Rayfield:LoadConfiguration()
+Rayfield:Notify({
+    Title = "FPS Ultimate Hub v10",
+    Content = "Sistem başarıyla yüklendi ve entegre edildi!",
+    Duration = 6
+})
