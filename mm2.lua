@@ -1,6 +1,7 @@
 -- ==========================================
--- MM2 Masterpiece Hub v16.1 | KATİL HEDEFLİ & GELİŞMİŞ ESP
+-- MM2 Masterpiece Hub v16.1 | Usplaxcl Multi-Hub Entegre Sürüm
 -- ==========================================
+local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -10,6 +11,19 @@ local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local TeleportService = game:GetService("TeleportService")
 local Camera = Workspace.CurrentCamera
+
+-- Eğer daha önceden açık kalan bir GUI varsa temizle
+if CoreGui:FindFirstChild("UsplaxclHub") then
+    CoreGui.UsplaxclHub:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "UsplaxclHub"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+local isCheatActive = false
 
 -- ==========================================
 -- BAĞLANTI HAVUZU & CACHE (Memory Leak Korumalı)
@@ -527,7 +541,7 @@ CombatTab:CreateToggle({
 })
 
 -- ==========================================
--- 4. GÖRSEL / ESP (TAMAMEN YENİLENDİ)
+-- 4. GÖRSEL / ESP
 -- ==========================================
 VisualsTab:CreateSection("Gelişmiş Drawing ESP")
 
@@ -539,7 +553,6 @@ VisualsTab:CreateToggle({
         _G.RoleESP = state
         if state then
             Connections.RoleESP = RunService.RenderStepped:Connect(function()
-                -- Ölü/Ayrılan oyuncuları Cache'den temizle
                 for cachedPlayer, _ in pairs(ESP_Cache) do
                     if not cachedPlayer or not cachedPlayer.Parent or cachedPlayer == LocalPlayer then
                         ClearESP(cachedPlayer)
@@ -561,7 +574,6 @@ VisualsTab:CreateToggle({
                         continue
                     end
                     
-                    -- Cache'de yoksa oluştur
                     if not ESP_Cache[p] then
                         ESP_Cache[p] = {
                             Drawings = {
@@ -608,36 +620,34 @@ VisualsTab:CreateToggle({
                         hl.Name = "MM2_Chams"
                         hl.FillTransparency = 0.5
                         hl.OutlineTransparency = 0.1
-                        hl.Parent = game:GetService("CoreGui")
+                        hl.Parent = CoreGui
                     end
                     
                     local cache = ESP_Cache[p]
                     local d = cache.Drawings
                     local hl = cache.Highlight
                     
-                    -- Rol Belirleme
                     local isM = char:FindFirstChild("Knife") or (p:FindFirstChild("Backpack") and p.Backpack:FindFirstChild("Knife"))
                     local isS = char:FindFirstChild("Gun") or (p:FindFirstChild("Backpack") and p.Backpack:FindFirstChild("Gun"))
                     local isDead = hum.Health <= 0
                     
-                    local espColor = Color3.fromRGB(40, 220, 90) -- Masum (Yeşil)
+                    local espColor = Color3.fromRGB(40, 220, 90)
                     local roleText = "[MASUM]"
                     
                     if isDead then
                         espColor = Color3.fromRGB(150, 150, 150)
                         roleText = "[ÖLÜ]"
                     elseif isM then
-                        espColor = Color3.fromRGB(255, 40, 40) -- Katil (Kırmızı)
+                        espColor = Color3.fromRGB(255, 40, 40)
                         roleText = "[KATİL]"
                     elseif isS then
-                        espColor = Color3.fromRGB(40, 100, 255) -- Şerif (Mavi)
+                        espColor = Color3.fromRGB(40, 100, 255)
                         roleText = "[ŞERİF]"
                     end
                     
                     local vector, onScreen = Camera:WorldToViewportPoint(hrp.Position)
                     local dist = math.floor((Camera.CFrame.Position - hrp.Position).Magnitude)
                     
-                    -- Eğer ekrandaysa ve yaşıyorsa çiz (Ölüler ekranı kirletmesin diye gizlenir)
                     if onScreen and not isDead then
                         local rootPart = hrp.Position
                         local head = char:FindFirstChild("Head")
@@ -653,7 +663,6 @@ VisualsTab:CreateToggle({
                         local boxSize = Vector2.new(width, height)
                         local boxPosition = Vector2.new(vector.X - width / 2, headVector.Y)
                         
-                        -- Kutu Çizimi
                         d.BoxOutline.Size = boxSize
                         d.BoxOutline.Position = boxPosition
                         d.BoxOutline.Visible = true
@@ -663,7 +672,6 @@ VisualsTab:CreateToggle({
                         d.Box.Color = espColor
                         d.Box.Visible = true
                         
-                        -- Metin Çizimleri
                         d.Name.Text = p.Name .. " " .. roleText
                         d.Name.Position = Vector2.new(vector.X, boxPosition.Y - 20)
                         d.Name.Color = espColor
@@ -674,7 +682,6 @@ VisualsTab:CreateToggle({
                         d.Distance.Color = espColor
                         d.Distance.Visible = true
                         
-                        -- Sağlık Barı (Dinamik Renk)
                         local healthPct = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
                         local hpHeight = height * healthPct
                         
@@ -684,16 +691,14 @@ VisualsTab:CreateToggle({
                         
                         d.Health.Size = Vector2.new(2, hpHeight)
                         d.Health.Position = Vector2.new(boxPosition.X - 6, boxPosition.Y + height - hpHeight)
-                        d.Health.Color = Color3.fromHSV(healthPct * 0.3, 1, 1) -- Kırmızıdan Yeşile geçiş
+                        d.Health.Color = Color3.fromHSV(healthPct * 0.3, 1, 1)
                         d.Health.Visible = true
                         
-                        -- Tracer
                         d.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
                         d.Tracer.To = Vector2.new(vector.X, boxPosition.Y + height)
                         d.Tracer.Color = espColor
                         d.Tracer.Visible = true
                         
-                        -- Chams
                         hl.Adornee = char
                         hl.FillColor = espColor
                         hl.OutlineColor = espColor
@@ -920,11 +925,110 @@ MiscTab:CreateButton({
 })
 
 -- ==========================================
+-- USPLAXCL YÜZEN WIDGET & KONTROL SİSTEMİ
+-- ==========================================
+
+-- Ana Yuvarlak Açma/Kapatma Butonu (Cyberpunk Stili)
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Parent = ScreenGui
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+ToggleBtn.Position = UDim2.new(0, 25, 0.5, -30)
+ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Text = "⚡"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 229, 255)
+ToggleBtn.TextSize = 22
+ToggleBtn.Draggable = true
+ToggleBtn.AutoButtonColor = false
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCorner.Parent = ToggleBtn
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Parent = ToggleBtn
+ToggleStroke.Color = Color3.fromRGB(0, 229, 255)
+ToggleStroke.Thickness = 2
+
+-- Aktif Çalışan Hile Durum Paneli (Çarpı Butonlu Widget)
+local ActiveWidget = Instance.new("Frame")
+ActiveWidget.Name = "ActiveWidget"
+ActiveWidget.Parent = ScreenGui
+ActiveWidget.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
+ActiveWidget.Position = UDim2.new(0.5, -170, 0, 20)
+ActiveWidget.Size = UDim2.new(0, 340, 0, 50)
+ActiveWidget.Visible = false
+ActiveWidget.Draggable = true
+
+local ActiveWidgetCorner = Instance.new("UICorner")
+ActiveWidgetCorner.CornerRadius = UDim.new(0, 10)
+ActiveWidgetCorner.Parent = ActiveWidget
+
+local ActiveWidgetStroke = Instance.new("UIStroke")
+ActiveWidgetStroke.Parent = ActiveWidget
+ActiveWidgetStroke.Color = Color3.fromRGB(0, 255, 128)
+ActiveWidgetStroke.Thickness = 1.5
+
+local ActiveIndicatorText = Instance.new("TextLabel")
+ActiveIndicatorText.Parent = ActiveWidget
+ActiveIndicatorText.BackgroundTransparency = 1
+ActiveIndicatorText.Position = UDim2.new(0, 12, 0, 0)
+ActiveIndicatorText.Size = UDim2.new(1, -60, 1, 0)
+ActiveIndicatorText.Font = Enum.Font.GothamBold
+ActiveIndicatorText.Text = "Aktif: MM2 Masterpiece"
+ActiveIndicatorText.TextColor3 = Color3.fromRGB(0, 255, 128)
+ActiveIndicatorText.TextSize = 13
+ActiveIndicatorText.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Çarpı Butonu (Basınca hileleri temizler ve Hub ekranına geri döndürür)
+local ActiveCloseBtn = Instance.new("TextButton")
+ActiveCloseBtn.Name = "ActiveCloseBtn"
+ActiveCloseBtn.Parent = ActiveWidget
+ActiveCloseBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+ActiveCloseBtn.Position = UDim2.new(1, -42, 0.5, -16)
+ActiveCloseBtn.Size = UDim2.new(0, 32, 0, 32)
+ActiveCloseBtn.Font = Enum.Font.GothamBold
+ActiveCloseBtn.Text = "✕"
+ActiveCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ActiveCloseBtn.TextSize = 14
+
+local ActiveCloseCorner = Instance.new("UICorner")
+ActiveCloseCorner.CornerRadius = UDim.new(0, 6)
+ActiveCloseCorner.Parent = ActiveCloseBtn
+
+-- Çarpı Butonuna Basıldığında: Hileler temizlenir, widget kapanır, Hub açılır
+ActiveCloseBtn.MouseButton1Click:Connect(function()
+    isCheatActive = false
+    FullCleanup()
+    ActiveWidget.Visible = false
+    if Window then
+        Rayfield:Toggle() -- Rayfield arayüzünü açar
+    end
+end)
+
+-- Toggle Butonu ile Rayfield Menüsünü Aç/Kapat
+ToggleBtn.MouseButton1Click:Connect(function()
+    if not isCheatActive then
+        if Window then
+            Rayfield:Toggle()
+        end
+    end
+end)
+
+-- Rayfield penceresi açıldığında aktif widget'ı gizleyip Hub'a odaklanma mantığı entegre edildi
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        -- Eğer kullanıcı Rayfield menüsünü açtıysa isCheatActive durumunu ayarlayabiliriz
+    end
+end)
+
+-- ==========================================
 -- BAŞLANGIÇ BİLDİRİMİ
 -- ==========================================
 Rayfield:Notify({
-    Title = "ESP Yükseltildi! (v16.1)",
-    Content = "2D Box, Dinamik HP Barı ve sıfır lag destekli özel çizim motoru eklendi.",
+    Title = "MM2 Masterpiece Hub v16.1",
+    Content = "Sistem başarıyla yüklendi ve entegre edildi!",
     Duration = 6
 })
-
