@@ -1,6 +1,7 @@
--- Usplaxcl Multi-Hub GUI (No Images, Custom Colored Names)
+-- Usplaxcl Multi-Hub GUI (Corrected Flow & Modern Design)
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
 if CoreGui:FindFirstChild("UsplaxclHub") then
@@ -11,113 +12,163 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UsplaxclHub"
 ScreenGui.Parent = CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
 
--- Yuvarlak Yüzen Ana Açma/Kapatma Simgesi
-local ToggleBtn = Instance.new("ImageButton")
+local isCheatActive = false
+
+-- Ana Yuvarlak Açma/Kapatma Butonu (Cyberpunk Stili)
+local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Name = "ToggleBtn"
 ToggleBtn.Parent = ScreenGui
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-ToggleBtn.BorderColor3 = Color3.fromRGB(60, 60, 60)
-ToggleBtn.Position = UDim2.new(0, 20, 0.5, -25)
-ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
-ToggleBtn.Image = "rbxassetid://6023426915"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+ToggleBtn.Position = UDim2.new(0, 25, 0.5, -30)
+ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Text = "⚡"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 229, 255)
+ToggleBtn.TextSize = 22
 ToggleBtn.Draggable = true
+ToggleBtn.AutoButtonColor = false
 
 local ToggleCorner = Instance.new("UICorner")
 ToggleCorner.CornerRadius = UDim.new(1, 0)
 ToggleCorner.Parent = ToggleBtn
 
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Parent = ToggleBtn
+ToggleStroke.Color = Color3.fromRGB(0, 229, 255)
+ToggleStroke.Thickness = 2
+
 -- Ana Pencere (Hub)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-MainFrame.BorderColor3 = Color3.fromRGB(40, 40, 40)
-MainFrame.Position = UDim2.new(0.5, -210, 0.5, -175)
-MainFrame.Size = UDim2.new(0, 420, 0, 350)
+MainFrame.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -200)
+MainFrame.Size = UDim2.new(0, 450, 0, 400)
 MainFrame.Visible = false
 MainFrame.Active = true
 MainFrame.Draggable = true
 
 local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.CornerRadius = UDim.new(0, 14)
 MainCorner.Parent = MainFrame
 
--- Başlık
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Parent = MainFrame
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Position = UDim2.new(0, 0, 0, 10)
-TitleLabel.Size = UDim2.new(1, 0, 0, 30)
-TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.Text = "USPLAXCL MULTI-CHEAT HUB"
-TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.TextSize = 16
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Parent = MainFrame
+MainStroke.Color = Color3.fromRGB(45, 45, 65)
+MainStroke.Thickness = 1.5
 
--- Listeleme Alanı (ScrollingFrame)
+-- Üst Bar (Başlık ve Kapatma Çarpısı)
+local TopBar = Instance.new("Frame")
+TopBar.Parent = MainFrame
+TopBar.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+TopBar.Size = UDim2.new(1, 0, 0, 45)
+
+local TopBarCorner = Instance.new("UICorner")
+TopBarCorner.CornerRadius = UDim.new(0, 14)
+TopBarCorner.Parent = TopBar
+
+local FixBar = Instance.new("Frame")
+FixBar.Parent = TopBar
+FixBar.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+FixBar.BorderSizePixel = 0
+FixBar.Position = UDim2.new(0, 0, 0.5, 0)
+FixBar.Size = UDim2.new(1, 0, 0.5, 0)
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Parent = TopBar
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Position = UDim2.new(0, 15, 0, 0)
+TitleLabel.Size = UDim2.new(1, -60, 1, 0)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "USPLAXCL MULTI-HUB"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 15
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local HubCloseBtn = Instance.new("TextButton")
+HubCloseBtn.Parent = TopBar
+HubCloseBtn.BackgroundTransparency = 1
+HubCloseBtn.Position = UDim2.new(1, -40, 0, 5)
+HubCloseBtn.Size = UDim2.new(0, 35, 0, 35)
+HubCloseBtn.Font = Enum.Font.GothamBold
+HubCloseBtn.Text = "✕"
+HubCloseBtn.TextColor3 = Color3.fromRGB(180, 180, 200)
+HubCloseBtn.TextSize = 16
+
+HubCloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+
+-- Hile Listesi Alanı
 local ScrollingFrame = Instance.new("ScrollingFrame")
 ScrollingFrame.Parent = MainFrame
 ScrollingFrame.Active = true
-ScrollingFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-ScrollingFrame.BorderColor3 = Color3.fromRGB(40, 40, 40)
-ScrollingFrame.Position = UDim2.new(0, 15, 0, 50)
-ScrollingFrame.Size = UDim2.new(1, -30, 1, -65)
+ScrollingFrame.BackgroundTransparency = 1
+ScrollingFrame.Position = UDim2.new(0, 15, 0, 55)
+ScrollingFrame.Size = UDim2.new(1, -30, 1, -70)
 ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScrollingFrame.ScrollBarThickness = 6
+ScrollingFrame.ScrollBarThickness = 4
+ScrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 229, 255)
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.Parent = ScrollingFrame
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 8)
+UIListLayout.Padding = UDim.new(0, 10)
 
 local UIPadding = Instance.new("UIPadding")
 UIPadding.Parent = ScrollingFrame
 UIPadding.PaddingTop = UDim.new(0, 5)
-UIPadding.PaddingLeft = UDim.new(0, 5)
-UIPadding.PaddingRight = UDim.new(0, 5)
+UIPadding.PaddingBottom = UDim.new(0, 10)
+UIPadding.PaddingLeft = UDim.new(0, 2)
+UIPadding.PaddingRight = UDim.new(0, 2)
 
--- Aktif Hile Gösterge Paneli (Çarpı butonunun olduğu ekran)
-local ActiveFrame = Instance.new("Frame")
-ActiveFrame.Name = "ActiveFrame"
-ActiveFrame.Parent = MainFrame
-ActiveFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-ActiveFrame.BorderColor3 = Color3.fromRGB(40, 40, 40)
-ActiveFrame.Position = UDim2.new(0, 15, 0, 50)
-ActiveFrame.Size = UDim2.new(1, -30, 1, -65)
-ActiveFrame.Visible = false
+-- Aktif Çalışan Hile Durum Paneli (Mini Yüzen Widget)
+local ActiveWidget = Instance.new("Frame")
+ActiveWidget.Name = "ActiveWidget"
+ActiveWidget.Parent = ScreenGui
+ActiveWidget.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
+ActiveWidget.Position = UDim2.new(0.5, -160, 0, 20)
+ActiveWidget.Size = UDim2.new(0, 320, 0, 50)
+ActiveWidget.Visible = false
+ActiveWidget.Draggable = true
 
-local ActiveCorner = Instance.new("UICorner")
-ActiveCorner.CornerRadius = UDim.new(0, 8)
-ActiveCorner.Parent = ActiveFrame
+local ActiveWidgetCorner = Instance.new("UICorner")
+ActiveWidgetCorner.CornerRadius = UDim.new(0, 10)
+ActiveWidgetCorner.Parent = ActiveWidget
 
-local ActiveText = Instance.new("TextLabel")
-ActiveText.Parent = ActiveFrame
-ActiveText.BackgroundTransparency = 1
-ActiveText.Position = UDim2.new(0, 15, 0, 30)
-ActiveText.Size = UDim2.new(1, -120, 0, 40)
-ActiveText.Font = Enum.Font.GothamBold
-ActiveText.Text = "Çalışan Hile: Yok"
-ActiveText.TextColor3 = Color3.fromRGB(0, 255, 128)
-ActiveText.TextSize = 14
-ActiveText.TextXAlignment = Enum.TextXAlignment.Left
+local ActiveWidgetStroke = Instance.new("UIStroke")
+ActiveWidgetStroke.Parent = ActiveWidget
+ActiveWidgetStroke.Color = Color3.fromRGB(0, 255, 128)
+ActiveWidgetStroke.Thickness = 1.5
 
--- Kırmızı Çarpı Butonu (Hileyi kapatıp ana menüye dönmek için)
-local CloseCheatBtn = Instance.new("TextButton")
-CloseCheatBtn.Name = "CloseCheatBtn"
-CloseCheatBtn.Parent = ActiveFrame
-CloseCheatBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
-CloseCheatBtn.Position = UDim2.new(1, -95, 0.5, -25)
-CloseCheatBtn.Size = UDim2.new(0, 80, 0, 50)
-CloseCheatBtn.Font = Enum.Font.GothamBold
-CloseCheatBtn.Text = "KAPAT [X]"
-CloseCheatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseCheatBtn.TextSize = 13
+local ActiveIndicatorText = Instance.new("TextLabel")
+ActiveIndicatorText.Parent = ActiveWidget
+ActiveIndicatorText.BackgroundTransparency = 1
+ActiveIndicatorText.Position = UDim2.new(0, 12, 0, 0)
+ActiveIndicatorText.Size = UDim2.new(1, -100, 1, 0)
+ActiveIndicatorText.Font = Enum.Font.GothamBold
+ActiveIndicatorText.Text = "Çalışan: Yok"
+ActiveIndicatorText.TextColor3 = Color3.fromRGB(0, 255, 128)
+ActiveIndicatorText.TextSize = 13
+ActiveIndicatorText.TextXAlignment = Enum.TextXAlignment.Left
 
-local CloseBtnCorner = Instance.new("UICorner")
-CloseBtnCorner.CornerRadius = UDim.new(0, 6)
-CloseBtnCorner.Parent = CloseCheatBtn
+local StopCheatBtn = Instance.new("TextButton")
+StopCheatBtn.Parent = ActiveWidget
+StopCheatBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+StopCheatBtn.Position = UDim2.new(1, -85, 0.5, -16)
+StopCheatBtn.Size = UDim2.new(0, 75, 0, 32)
+StopCheatBtn.Font = Enum.Font.GothamBold
+StopCheatBtn.Text = "KAPAT"
+StopCheatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StopCheatBtn.TextSize = 12
 
--- Hileler ve Her Birine Özel Renkler
+local StopBtnCorner = Instance.new("UICorner")
+StopBtnCorner.CornerRadius = UDim.new(0, 6)
+StopBtnCorner.Parent = StopCheatBtn
+
+-- Hile Verileri
 local cheats = {
     {Name = "MM2 HUB", Color = Color3.fromRGB(231, 76, 60), Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/mm2.lua"},
     {Name = "GROW A GARDEN 2", Color = Color3.fromRGB(46, 204, 113), Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/GROW%20A%20GARDEN%202"},
@@ -132,39 +183,58 @@ local cheats = {
 for _, cheat in ipairs(cheats) do
     local ItemBtn = Instance.new("TextButton")
     ItemBtn.Parent = ScrollingFrame
-    ItemBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
-    ItemBtn.Size = UDim2.new(1, -10, 0, 45)
-    ItemBtn.AutoButtonColor = true
+    ItemBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+    ItemBtn.Size = UDim2.new(1, -4, 0, 48)
+    ItemBtn.AutoButtonColor = false
     ItemBtn.Font = Enum.Font.GothamBold
-    ItemBtn.Text = cheat.Name
+    ItemBtn.Text = "  " .. cheat.Name
     ItemBtn.TextColor3 = cheat.Color
     ItemBtn.TextSize = 14
-    ItemBtn.TextXAlignment = Enum.TextXAlignment.Center
+    ItemBtn.TextXAlignment = Enum.TextXAlignment.Left
     
     local ItemCorner = Instance.new("UICorner")
-    ItemCorner.CornerRadius = UDim.new(0, 6)
+    ItemCorner.CornerRadius = UDim.new(0, 8)
     ItemCorner.Parent = ItemBtn
     
-    -- Çalıştırma Olayı
+    local ItemStroke = Instance.new("UIStroke")
+    ItemStroke.Parent = ItemBtn
+    ItemStroke.Color = Color3.fromRGB(35, 35, 50)
+    ItemStroke.Thickness = 1
+    
+    ItemBtn.MouseEnter:Connect(function()
+        TweenService:Create(ItemBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 30, 42)}):Play()
+        TweenService:Create(ItemStroke, TweenInfo.new(0.2), {Color = cheat.Color}):Play()
+    end)
+    
+    ItemBtn.MouseLeave:Connect(function()
+        TweenService:Create(ItemBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30)}):Play()
+        TweenService:Create(ItemStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(35, 35, 50)}):Play()
+    end)
+    
+    -- Hile Seçildiğinde: Ana menü tamamen yok olur, hile aktif duruma geçer
     ItemBtn.MouseButton1Click:Connect(function()
         pcall(function()
             loadstring(game:HttpGet(cheat.Url))()
         end)
-        ActiveText.Text = "Aktif: " .. cheat.Name
-        ScrollingFrame.Visible = false
-        ActiveFrame.Visible = true
+        
+        isCheatActive = true
+        MainFrame.Visible = false
+        ActiveIndicatorText.Text = "Çalışan: " .. cheat.Name
+        ActiveWidget.Visible = true
     end)
 end
 
-ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, #cheats * 53)
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, #cheats * 58)
 
--- Kırmızı Çarpı Butonuna Basıldığında Ana Menüye Dönüş
-CloseCheatBtn.MouseButton1Click:Connect(function()
-    ActiveFrame.Visible = false
-    ScrollingFrame.Visible = true
+-- Hileyi Kapat Butonu (Sadece hile panelini kapatır, ana menüyü ASLA açmaz)
+StopCheatBtn.MouseButton1Click:Connect(function()
+    isCheatActive = false
+    ActiveWidget.Visible = false
 end)
 
--- Yuvarlak Toggle Butonu ile Menüyü Aç/Kapat
+-- Toggle Butonu (Hile aktifken ana menüyü açmaz, hile kapalıysa açar/kapatır)
 ToggleBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
+    if not isCheatActive then
+        MainFrame.Visible = not MainFrame.Visible
+    end
 end)
