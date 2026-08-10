@@ -1,18 +1,59 @@
---[[
-    ====================================================================
-    [ GROW A GARDEN 2 - OMEGA SYSTEM-INTEGRATED SCRIPT HUB ]
-    - Kapsanan Sistemler: Fruit Stock Optimizer, Gece Çalma/Savunma Modu,
-      Bloodlit/Electric Mutasyon ESP, 5dk Tohum Restok Takipçisi, 
-      Hava Durumu Olayları & Anti-Teleport Güvenlik Katmanı
-    - Geliştirici: Usplaxcl Özel Sürüm (GAG2 Sistem Dökümü Uyumlu)
-    ====================================================================
-]]
+-- ====================================================================
+-- [ GROW A GARDEN 2 - OMEGA SYSTEM-INTEGRATED SCRIPT HUB ]
+-- - Kapsanan Sistemler: Fruit Stock Optimizer, Gece Çalma/Savunma Modu,
+--   Bloodlit/Electric Mutasyon ESP, 5dk Tohum Restok Takipçisi, 
+--   Hava Durumu Olayları & Anti-Teleport Güvenlik Katmanı
+-- - Geliştirici: Usplaxcl Özel Sürüm (Sistem Entegre Sürüm)
+-- ====================================================================
 
+local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
+
+-- Eğer daha önceden açık kalan bir GUI varsa temizle
+if CoreGui:FindFirstChild("UsplaxclHub_GAG2") then
+    CoreGui.UsplaxclHub_GAG2:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "UsplaxclHub_GAG2"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+local isCheatActive = false
+
+-- ==========================================
+-- GÜVENLİ TEMİZLİK (FULL CLEANUP)
+-- ==========================================
+local function FullCleanup()
+    _G.AutoHarvest = false
+    _G.NightThiefESP = false
+    _G.DefenseAura = false
+    _G.MutationESP = false
+    _G.SuperSpeed = false
+    _G.GodMode = false
+
+    -- Oyuncu ve Dünya üzerindeki Highlight/ESP kalıntılarını temizle
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Character then
+            local hl = p.Character:FindFirstChildOfClass("Highlight")
+            if hl then hl:Destroy() end
+        end
+    end
+    
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        local hl = obj:FindFirstChildOfClass("Highlight")
+        if hl then hl:Destroy() end
+    end
+
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = 16
+    end
+end
 
 -- Rayfield UI Kütüphanesini Güvenli Yükleme
 local Success, Rayfield = pcall(function()
@@ -49,7 +90,6 @@ local TabWorld = Window:CreateTab("⚡ Hareket & Karakter", 4483362458)
 
 TabFarm:CreateSection("Fruit Stock & Cezalı Satış Önleyici")
 
--- Otomatik Mahsul Toplama (Auto Farm / Harvest)
 TabFarm:CreateToggle({
     Name = "Otomatik Mahsul Hasat Etme (Auto Harvest)",
     CurrentValue = false,
@@ -65,7 +105,9 @@ TabFarm:CreateToggle({
                             if prompt then
                                 fireproximityprompt(prompt)
                             else
-                                obj.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 2, 0)
+                                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                                    obj.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 2, 0)
+                                end
                             end
                         end
                     end
@@ -75,14 +117,13 @@ TabFarm:CreateToggle({
     end,
 })
 
--- Fruit Stock Çarpan Uyarısı / Otomatik Pazar Işınlanması
 TabFarm:CreateButton({
     Name = "💰 Pazar Alanına Işınlan (10dk Restok Kontrolü)",
     Callback = function()
         pcall(function()
             for _, obj in pairs(Workspace:GetDescendants()) do
                 if obj.Name:lower():find("sell") or obj.Name:lower():find("market") or obj.Name:lower():find("shop") then
-                    if obj:IsA("BasePart") then
+                    if obj:IsA("BasePart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                         LocalPlayer.Character.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
                         break
                     end
@@ -99,7 +140,6 @@ TabFarm:CreateButton({
 
 TabSteal:CreateSection("2 Dakikalık Gece Fazı & Hırsızlık Koruması")
 
--- Gece Baskını Oyuncu ESP (Hırsız Tespiti)
 TabSteal:CreateToggle({
     Name = "Gece Baskını Oyuncu ESP (Yaklaşan Hırsızlar - Kırmızı)",
     CurrentValue = false,
@@ -124,12 +164,10 @@ TabSteal:CreateToggle({
     end,
 })
 
--- Çalıntı Mal Taşıma Güvenlik Uyarısı (Teleport Kapalı Uyarısı)
 TabSteal:CreateButton({
     Name = "🚨 Acil Durum: En Yakın Korumalı Bölgeye Kaç",
     Callback = function()
         pcall(function()
-            -- Not: Oyun mekaniği gereği çalıntı mal taşırken teleport devre dışıdır, bu yüzden üsse koşturur.
             local char = LocalPlayer.Character
             if char and char:FindFirstChild("Humanoid") then
                 char.Humanoid.WalkSpeed = 60
@@ -141,7 +179,6 @@ TabSteal:CreateButton({
     end,
 })
 
--- Savunma / Kill Aura (Bahçedeki Hırsızları Cezalandırma)
 TabSteal:CreateToggle({
     Name = "⚡ Bahçe Savunma Kill Aura (Gelen Hırsızları Yok Et)",
     CurrentValue = false,
@@ -180,7 +217,6 @@ TabSteal:CreateToggle({
 
 TabMut:CreateSection("Bloodlit (80x) & Electric (70x) Mutasyon Takibi")
 
--- Nadir Mutasyon Mahsul ESP (Bloodlit, Electric, Gold, Rainbow)
 TabMut:CreateToggle({
     Name = "Yüksek Çarpanlı Mutasyon Mahsul ESP (Yeşil/Altın)",
     CurrentValue = false,
@@ -195,7 +231,7 @@ TabMut:CreateToggle({
                         if name:find("bloodlit") or name:find("electric") or name:find("rainbow") or name:find("gold") then
                             if not obj:FindFirstChild("Highlight") then
                                 local hl = Instance.new("Highlight", obj)
-                                hl.FillColor = Color3.fromRGB(255, 215, 0) -- Altın sarısı
+                                hl.FillColor = Color3.fromRGB(255, 215, 0)
                                 hl.OutlineColor = Color3.fromRGB(255, 255, 255)
                             end
                         end
@@ -206,7 +242,6 @@ TabMut:CreateToggle({
     end,
 })
 
--- Sprinkler Size Luck Optimizasyon Bilgisi (100 Sınırı)
 TabMut:CreateButton({
     Name = "💧 Sprinkler Size Luck Bilgi Bildirimi",
     Callback = function()
@@ -220,14 +255,13 @@ TabMut:CreateButton({
 
 TabShop:CreateSection("5 Dakikalık Tohum & Prop Restok Sistemi")
 
--- Nadir Tohum / Mağaza Bildirimi
 TabShop:CreateButton({
     Name = "🍄 Nadir Tohum (Mushroom vb.) Kontrol Et",
     Callback = function()
         pcall(function()
             for _, obj in pairs(Workspace:GetDescendants()) do
                 if obj.Name:lower():find("seedshop") or obj.Name:lower():find("merchant") or obj.Name:lower():find("mushroom") then
-                    if obj:IsA("BasePart") then
+                    if obj:IsA("BasePart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                         LocalPlayer.Character.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
                         break
                     end
@@ -253,11 +287,15 @@ TabWorld:CreateToggle({
             while _G.SuperSpeed do
                 task.wait(0.1)
                 pcall(function()
-                    LocalPlayer.Character.Humanoid.WalkSpeed = 48
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                        LocalPlayer.Character.Humanoid.WalkSpeed = 48
+                    end
                 end)
             end
             pcall(function()
-                LocalPlayer.Character.Humanoid.WalkSpeed = 16
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                    LocalPlayer.Character.Humanoid.WalkSpeed = 16
+                end
             end)
         end)
     end,
@@ -282,5 +320,104 @@ TabWorld:CreateToggle({
     end,
 })
 
-Rayfield:LoadConfiguration()
+-- ==========================================
+-- USPLAXCL YÜZEN WIDGET & KONTROL SİSTEMİ
+-- ==========================================
 
+-- Ana Yuvarlak Açma/Kapatma Butonu (Cyberpunk Stili)
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Parent = ScreenGui
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+ToggleBtn.Position = UDim2.new(0, 25, 0.5, -30)
+ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Text = "⚡"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 229, 255)
+ToggleBtn.TextSize = 22
+ToggleBtn.Draggable = true
+ToggleBtn.AutoButtonColor = false
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCorner.Parent = ToggleBtn
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Parent = ToggleBtn
+ToggleStroke.Color = Color3.fromRGB(0, 229, 255)
+ToggleStroke.Thickness = 2
+
+-- Aktif Çalışan Hile Durum Paneli (Çarpı Butonlu Widget)
+local ActiveWidget = Instance.new("Frame")
+ActiveWidget.Name = "ActiveWidget"
+ActiveWidget.Parent = ScreenGui
+ActiveWidget.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
+ActiveWidget.Position = UDim2.new(0.5, -170, 0, 20)
+ActiveWidget.Size = UDim2.new(0, 340, 0, 50)
+ActiveWidget.Visible = false
+ActiveWidget.Draggable = true
+
+local ActiveWidgetCorner = Instance.new("UICorner")
+ActiveWidgetCorner.CornerRadius = UDim.new(0, 10)
+ActiveWidgetCorner.Parent = ActiveWidget
+
+local ActiveWidgetStroke = Instance.new("UIStroke")
+ActiveWidgetStroke.Parent = ActiveWidget
+ActiveWidgetStroke.Color = Color3.fromRGB(0, 255, 128)
+ActiveWidgetStroke.Thickness = 1.5
+
+local ActiveIndicatorText = Instance.new("TextLabel")
+ActiveIndicatorText.Parent = ActiveWidget
+ActiveIndicatorText.BackgroundTransparency = 1
+ActiveIndicatorText.Position = UDim2.new(0, 12, 0, 0)
+ActiveIndicatorText.Size = UDim2.new(1, -60, 1, 0)
+ActiveIndicatorText.Font = Enum.Font.GothamBold
+ActiveIndicatorText.Text = "Aktif: Grow a Garden 2"
+ActiveIndicatorText.TextColor3 = Color3.fromRGB(0, 255, 128)
+ActiveIndicatorText.TextSize = 13
+ActiveIndicatorText.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Çarpı Butonu (Basınca hileleri temizler ve Hub ekranına geri döndürür)
+local ActiveCloseBtn = Instance.new("TextButton")
+ActiveCloseBtn.Name = "ActiveCloseBtn"
+ActiveCloseBtn.Parent = ActiveWidget
+ActiveCloseBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+ActiveCloseBtn.Position = UDim2.new(1, -42, 0.5, -16)
+ActiveCloseBtn.Size = UDim2.new(0, 32, 0, 32)
+ActiveCloseBtn.Font = Enum.Font.GothamBold
+ActiveCloseBtn.Text = "✕"
+ActiveCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ActiveCloseBtn.TextSize = 14
+
+local ActiveCloseCorner = Instance.new("UICorner")
+ActiveCloseCorner.CornerRadius = UDim.new(0, 6)
+ActiveCloseCorner.Parent = ActiveCloseBtn
+
+-- Çarpı Butonuna Basıldığında: Hileler temizlenir, widget kapanır, Hub açılır
+ActiveCloseBtn.MouseButton1Click:Connect(function()
+    isCheatActive = false
+    FullCleanup()
+    ActiveWidget.Visible = false
+    if Window then
+        Rayfield:Toggle()
+    end
+end)
+
+-- Toggle Butonu ile Rayfield Menüsünü Aç/Kapat
+ToggleBtn.MouseButton1Click:Connect(function()
+    if not isCheatActive then
+        if Window then
+            Rayfield:Toggle()
+        end
+    end
+end)
+
+-- ==========================================
+-- BAŞLANGIÇ BİLDİRİMİ
+-- ==========================================
+Rayfield:LoadConfiguration()
+Rayfield:Notify({
+    Title = "Grow a Garden 2 Omega Hub",
+    Content = "Sistem başarıyla yüklendi ve entegre edildi!",
+    Duration = 6
+})
