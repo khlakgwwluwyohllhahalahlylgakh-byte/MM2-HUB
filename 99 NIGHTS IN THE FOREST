@@ -2,8 +2,8 @@
     ====================================================================
     [ 99 NIGHTS IN THE FOREST - ABSOLUTE GOD-TIER OMEGA SCRIPT HUB ]
     - Tamamen Kapsamlı, Eksiksiz ve En Üst Düzey Optimizasyon Sürümü
-    - Tüm Sistemler, Biyom Mantıkları ve Özel İstekler Entegre Edilmiştir
-    - Geliştirici: Usplaxcl Özel Versiyon
+    - Tüm Sistemler, Biyom Mantıkları ve Özel İstekler Entegre Edildi
+    - Geliştirici: Usplaxcl Özel Versiyon (Sistem Entegre Sürüm)
     ====================================================================
 ]]
 
@@ -43,6 +43,32 @@ local TabCombat = Window:CreateTab("⚔️ Savaş & Kill Aura", 4483362458)
 local TabEsp = Window:CreateTab("👁️ ESP & Gelişmiş Görüş", 4483362458)
 local TabWorld = Window:CreateTab("🌍 Dünya & Meta Kontrolü", 4483362458)
 
+-- ==========================================================
+-- 🧹 GÜVENLİ TEMİZLİK (FULL CLEANUP)
+-- ==========================================================
+local function FullCleanup()
+    _G.AutoMaxFire = false
+    _G.GodStats = false
+    _G.GodMode = false
+    _G.MegaAura = false
+    _G.Hitbox = false
+    _G.MobESP = false
+    _G.KidESP = false
+    _G.SuperSpeed = false
+
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj.Name == "Highlight" and (obj.Parent and (obj.Parent:FindFirstChild("Humanoid") or obj.Name:lower():find("child") or obj.Name:lower():find("kid"))) then
+            obj:Destroy()
+        end
+    end
+
+    pcall(function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = 16
+        end
+    end)
+end
+
 --------------------------------------------------------------------------------
 -- 1. KAMP ATEŞİ VE İSTATİSTİKLER (CAMP & STATS TAB)
 --------------------------------------------------------------------------------
@@ -54,6 +80,8 @@ TabCamp:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         _G.AutoMaxFire = Value
+        isCheatActive = Value
+        if ActiveWidget then ActiveWidget.Visible = Value end
         task.spawn(function()
             while _G.AutoMaxFire do
                 task.wait(0.3)
@@ -80,6 +108,8 @@ TabCamp:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         _G.GodStats = Value
+        isCheatActive = Value
+        if ActiveWidget then ActiveWidget.Visible = Value end
         task.spawn(function()
             while _G.GodStats do
                 task.wait(0.1)
@@ -175,6 +205,8 @@ TabCombat:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         _G.GodMode = Value
+        isCheatActive = Value
+        if ActiveWidget then ActiveWidget.Visible = Value end
         task.spawn(function()
             while _G.GodMode do
                 task.wait(0.05)
@@ -196,6 +228,8 @@ TabCombat:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         _G.MegaAura = Value
+        isCheatActive = Value
+        if ActiveWidget then ActiveWidget.Visible = Value end
         task.spawn(function()
             while _G.MegaAura do
                 task.wait(0.1)
@@ -230,6 +264,8 @@ TabCombat:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         _G.Hitbox = Value
+        isCheatActive = Value
+        if ActiveWidget then ActiveWidget.Visible = Value end
         RunService.RenderStepped:Connect(function()
             if _G.Hitbox then
                 for _, v in pairs(Players:GetPlayers()) do
@@ -255,6 +291,8 @@ TabEsp:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         _G.MobESP = Value
+        isCheatActive = Value
+        if ActiveWidget then ActiveWidget.Visible = Value end
         task.spawn(function()
             while _G.MobESP do
                 task.wait(1)
@@ -279,6 +317,8 @@ TabEsp:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         _G.KidESP = Value
+        isCheatActive = Value
+        if ActiveWidget then ActiveWidget.Visible = Value end
         task.spawn(function()
             while _G.KidESP do
                 task.wait(1)
@@ -352,6 +392,8 @@ TabWorld:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         _G.SuperSpeed = Value
+        isCheatActive = Value
+        if ActiveWidget then ActiveWidget.Visible = Value end
         task.spawn(function()
             while _G.SuperSpeed do
                 task.wait(0.1)
@@ -366,5 +408,106 @@ TabWorld:CreateToggle({
     end,
 })
 
-Rayfield:LoadConfiguration()
+-- ==========================================
+-- CYBERPUNK WIDGET & KONTROL SİSTEMİ
+-- ==========================================
+if CoreGui:FindFirstChild("Nights99MasterAI_Gui") then
+    CoreGui.Nights99MasterAI_Gui:Destroy()
+end
 
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "Nights99MasterAI_Gui"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+isCheatActive = false
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Parent = ScreenGui
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+ToggleBtn.Position = UDim2.new(0, 25, 0.5, -30)
+ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Text = "⚡"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 229, 255)
+ToggleBtn.TextSize = 22
+ToggleBtn.Draggable = true
+ToggleBtn.AutoButtonColor = false
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCorner.Parent = ToggleBtn
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Parent = ToggleBtn
+ToggleStroke.Color = Color3.fromRGB(0, 229, 255)
+ToggleStroke.Thickness = 2
+
+ActiveWidget = Instance.new("Frame")
+ActiveWidget.Name = "ActiveWidget"
+ActiveWidget.Parent = ScreenGui
+ActiveWidget.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
+ActiveWidget.Position = UDim2.new(0.5, -170, 0, 20)
+ActiveWidget.Size = UDim2.new(0, 340, 0, 50)
+ActiveWidget.Visible = false
+ActiveWidget.Draggable = true
+
+local ActiveWidgetCorner = Instance.new("UICorner")
+ActiveWidgetCorner.CornerRadius = UDim.new(0, 10)
+ActiveWidgetCorner.Parent = ActiveWidget
+
+local ActiveWidgetStroke = Instance.new("UIStroke")
+ActiveWidgetStroke.Parent = ActiveWidget
+ActiveWidgetStroke.Color = Color3.fromRGB(0, 255, 128)
+ActiveWidgetStroke.Thickness = 1.5
+
+local ActiveIndicatorText = Instance.new("TextLabel")
+ActiveIndicatorText.Parent = ActiveWidget
+ActiveIndicatorText.BackgroundTransparency = 1
+ActiveIndicatorText.Position = UDim2.new(0, 12, 0, 0)
+ActiveIndicatorText.Size = UDim2.new(1, -60, 1, 0)
+ActiveIndicatorText.Font = Enum.Font.GothamBold
+ActiveIndicatorText.Text = "Aktif: 99 Nights Omega Hub"
+ActiveIndicatorText.TextColor3 = Color3.fromRGB(0, 255, 128)
+ActiveIndicatorText.TextSize = 13
+ActiveIndicatorText.TextXAlignment = Enum.TextXAlignment.Left
+
+local ActiveCloseBtn = Instance.new("TextButton")
+ActiveCloseBtn.Name = "ActiveCloseBtn"
+ActiveCloseBtn.Parent = ActiveWidget
+ActiveCloseBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+ActiveCloseBtn.Position = UDim2.new(1, -42, 0.5, -16)
+ActiveCloseBtn.Size = UDim2.new(0, 32, 0, 32)
+ActiveCloseBtn.Font = Enum.Font.GothamBold
+ActiveCloseBtn.Text = "✕"
+ActiveCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ActiveCloseBtn.TextSize = 14
+
+local ActiveCloseCorner = Instance.new("UICorner")
+ActiveCloseCorner.CornerRadius = UDim.new(0, 6)
+ActiveCloseCorner.Parent = ActiveCloseBtn
+
+ActiveCloseBtn.MouseButton1Click:Connect(function()
+    isCheatActive = false
+    FullCleanup()
+    ActiveWidget.Visible = false
+    if Window then
+        Rayfield:Toggle()
+    end
+end)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    if Window then
+        Rayfield:Toggle()
+    end
+end)
+
+Rayfield:LoadConfiguration()
+Rayfield:Notify({
+    Title = "99 Nights Omega Hub Aktif!",
+    Content = "🌲 Kamp ateşi, çocuk kurtarma ve mega kill aura sistemleri hazır.",
+    Duration = 7, 
+    Image = 4483362458
+})
