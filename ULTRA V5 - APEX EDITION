@@ -1,4 +1,4 @@
--- Usplaxcl Multi-Hub GUI (Corrected Flow & Modern Design)
+-- Usplaxcl Multi-Hub GUI (Corrected Flow & Modern Design + Tribe Survival)
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -168,8 +168,9 @@ local StopBtnCorner = Instance.new("UICorner")
 StopBtnCorner.CornerRadius = UDim.new(0, 6)
 StopBtnCorner.Parent = StopCheatBtn
 
--- Hile Verileri
+-- Hile Verileri (Tribe Survival Eklendi)
 local cheats = {
+    {Name = "TRIBE SURVIVAL", Color = Color3.fromRGB(0, 229, 255), Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/Tribe%20Survival"},
     {Name = "MM2 HUB", Color = Color3.fromRGB(231, 76, 60), Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/mm2.lua"},
     {Name = "GROW A GARDEN 2", Color = Color3.fromRGB(46, 204, 113), Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/GROW%20A%20GARDEN%202"},
     {Name = "Fps Hack", Color = Color3.fromRGB(52, 152, 219), Url = "https://raw.githubusercontent.com/khlakgwwluwyohllhahalahlylgakh-byte/MM2-HUB/main/Fps%20hack"},
