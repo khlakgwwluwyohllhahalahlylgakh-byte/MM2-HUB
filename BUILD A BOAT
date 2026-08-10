@@ -1,5 +1,5 @@
 -- ==========================================================
--- ⛵ BUILD A BOAT FOR TREASURE | God Prime Hub v6.0 ULTIMATE MOBILE
+-- ⛵ BUILD A BOAT FOR TREASURE | God Prime Hub v6.0 ULTIMATE MOBILE (SİSTEM ENTEGRE)
 -- 📱 Full Mobile Support | Pure BABFT Features | Smooth Farm & ESP
 -- ==========================================================
 
@@ -12,6 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local VirtualUser = game:GetService("VirtualUser")
+local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
@@ -61,9 +62,10 @@ local function updateCharacter(char)
     Character = char
     HumanoidRootPart = char:WaitForChild("HumanoidRootPart", 5)
     Humanoid = char:WaitForChild("Humanoid", 5)
-    Camera.CameraSubject = Humanoid
+    if Humanoid then
+        Camera.CameraSubject = Humanoid
+    end
     
-    -- Oyuncunun teknesini tespit et
     task.spawn(function()
         task.wait(1.5)
         for _, obj in ipairs(Workspace:GetDescendants()) do
@@ -82,6 +84,36 @@ updateCharacter(LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait())
 LocalPlayer.CharacterAdded:Connect(updateCharacter)
 
 -- ==========================================================
+-- 🧹 GÜVENLİ TEMİZLİK (FULL CLEANUP)
+-- ==========================================================
+local function FullCleanup()
+    _G.GodPrimeBABFT.AutoFarm = false
+    _G.GodPrimeBABFT.MobileFly = false
+    _G.GodPrimeBABFT.Noclip = false
+    _G.GodPrimeBABFT.ChestESP = false
+    _G.GodPrimeBABFT.BoatESP = false
+    _G.GodPrimeBABFT.XRay = false
+
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        local esp1 = obj:FindFirstChild("BabftChestESP")
+        local esp2 = obj:FindFirstChild("ChestTag")
+        local esp3 = obj:FindFirstChild("BabftBoatESP")
+        if esp1 then esp1:Destroy() end
+        if esp2 then esp2:Destroy() end
+        if esp3 then esp3:Destroy() end
+        if obj:IsA("BasePart") and not obj:IsDescendantOf(Character) then
+            obj.Transparency = 0
+        end
+    end
+
+    if Character and Humanoid then
+        Humanoid.WalkSpeed = 16
+        Humanoid.JumpPower = 50
+        Humanoid.PlatformStand = false
+    end
+end
+
+-- ==========================================================
 -- 📱 MOBİL DOKUNMATİK KONTROLLER (BABFT ÖZEL TUŞLAR)
 -- ==========================================================
 local function createMobileControls()
@@ -93,7 +125,6 @@ local function createMobileControls()
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     
-    -- Joystick (Sol Alt)
     local joystickBase = Instance.new("Frame")
     joystickBase.Name = "JoystickBase"
     joystickBase.Size = UDim2.new(0, 120, 0, 120)
@@ -120,7 +151,6 @@ local function createMobileControls()
     stickCorner.CornerRadius = UDim.new(1, 0)
     stickCorner.Parent = joystickStick
     
-    -- Action Buttons (Sağ Alt)
     local buttonFrame = Instance.new("Frame")
     buttonFrame.Name = "ActionButtons"
     buttonFrame.Size = UDim2.new(0, 200, 0, 200)
@@ -175,7 +205,6 @@ local function createMobileControls()
         if HumanoidRootPart then HumanoidRootPart.CFrame = CFrame.new(-50, 50, 9465) end
     end)
     
-    -- Joystick Dokunma Mantığı
     local joystickActive = false
     local joystickCenter = Vector2.new()
     
@@ -309,7 +338,6 @@ Workspace.DescendantAdded:Connect(function(obj)
     end
 end)
 
--- Fullbright Ayarı
 local function toggleFullbright(state)
     _G.GodPrimeBABFT.Fullbright = state
     if state then
@@ -331,7 +359,6 @@ toggleFullbright(true)
 -- 🚀 ANA MOTOR (RenderStepped & Heartbeat)
 -- ==========================================================
 RunService.RenderStepped:Connect(function(dt)
-    -- Noclip
     if _G.GodPrimeBABFT.Noclip and Character then
         for _, part in ipairs(Character:GetDescendants()) do
             if part:IsA("BasePart") then part.CanCollide = false end
@@ -342,7 +369,6 @@ RunService.RenderStepped:Connect(function(dt)
     local hum = Character and Character:FindFirstChildOfClass("Humanoid")
     if not root or not hum then return end
 
-    -- Mobil Uçuş / Fizik Güncellemesi
     if _G.GodPrimeBABFT.MobileFly then
         hum.PlatformStand = true
         root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
@@ -350,11 +376,9 @@ RunService.RenderStepped:Connect(function(dt)
         hum.PlatformStand = false
     end
 
-    -- Hız ve Zıplama
     hum.WalkSpeed = _G.GodPrimeBABFT.Speed
     hum.JumpPower = _G.GodPrimeBABFT.JumpPower
 
-    -- Oto Çiftlik & Süzülerek Bölüm Geçme (Auto Farm)
     if _G.GodPrimeBABFT.AutoFarm and not _G.GodPrimeBABFT.MobileFly then
         pcall(function()
             local targetPos = Vector3.new(-50, 70, 9465)
@@ -367,7 +391,6 @@ RunService.RenderStepped:Connect(function(dt)
                 root.CFrame = CFrame.new(currentPos + step, targetPos)
                 root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             else
-                -- Sandığı otomatik bul ve dokun
                 if _G.GodPrimeBABFT.AutoCollectChest then
                     for _, obj in ipairs(Workspace:GetDescendants()) do
                         if obj.Name == "TreasureChest" or obj.Name == "GoldChest" then
@@ -382,19 +405,17 @@ RunService.RenderStepped:Connect(function(dt)
                 end
                 
                 task.wait(_G.GodPrimeBABFT.FarmDelay)
-                root.CFrame = CFrame.new(-50, 50, -60) -- Başlangıç bölgesine dön
+                root.CFrame = CFrame.new(-50, 50, -60)
                 task.wait(2)
             end
         end)
     end
 
-    -- Anti-Void (Harita altına düşmeyi engelle)
     if _G.GodPrimeBABFT.AntiVoid and root.Position.Y < -50 then
         root.CFrame = CFrame.new(-50, 100, -60)
     end
 end)
 
--- Tekne Koruma ve Hız Hileleri
 RunService.Heartbeat:Connect(function()
     if _G.GodPrimeBABFT.BoatGodMode and CurrentBoat then
         for _, part in ipairs(CurrentBoat:GetDescendants()) do
@@ -404,7 +425,6 @@ RunService.Heartbeat:Connect(function()
         end
     end
     
-    -- Otomatik Tekne Tamir (Hasar gören parçaları şeffaflıktan kurtar)
     if _G.GodPrimeBABFT.AutoRepairBoat and CurrentBoat then
         for _, part in ipairs(CurrentBoat:GetDescendants()) do
             if part:IsA("BasePart") and part.Transparency > 0 then
@@ -414,7 +434,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Anti-AFK
 task.spawn(function()
     while _G.GodPrimeBABFT.AntiAFK do
         task.wait(50)
@@ -440,14 +459,22 @@ local Window = Rayfield:CreateWindow({
     KeySystem = false
 })
 
--- TAB 1: OTO ÇİFTLİK (AUTO FARM)
 local FarmTab = Window:CreateTab("🤖 Oto Çiftlik", 4483362458)
+local MoveTab = Window:CreateTab("🏃 Hareket", 4483362458)
+local BoatTab = Window:CreateTab("⛵ Tekne Araçları", 4483362458)
+local TeleportTab = Window:CreateTab("🎯 Işınlanma", 4483362458)
+local VisualsTab = Window:CreateTab("👁️ Görsel & ESP", 4483362458)
+local SystemTab = Window:CreateTab("⚙️ Sistem", 4483362458)
 
 FarmTab:CreateSection("💰 Akıllı Altın Kazanma Döngüsü")
 FarmTab:CreateToggle({
     Name = "🤖 Auto Smooth Farm (Süzülerek Git)",
     CurrentValue = false,
-    Callback = function(v) _G.GodPrimeBABFT.AutoFarm = v end
+    Callback = function(v) 
+        _G.GodPrimeBABFT.AutoFarm = v 
+        isCheatActive = v
+        if ActiveWidget then ActiveWidget.Visible = v end
+    end
 })
 FarmTab:CreateToggle({
     Name = "📦 Otomatik Hazine Sandığı Topla",
@@ -465,14 +492,15 @@ FarmTab:CreateSlider({
     Callback = function(v) _G.GodPrimeBABFT.FarmDelay = v end
 })
 
--- TAB 2: HAREKET & UÇUŞ
-local MoveTab = Window:CreateTab("🏃 Hareket", 4483362458)
-
 MoveTab:CreateSection("✈️ Uçuş & Fizik")
 MoveTab:CreateToggle({
     Name = "📱 Mobil Free Fly (Uçuş Modu)",
     CurrentValue = false,
-    Callback = function(v) _G.GodPrimeBABFT.MobileFly = v end
+    Callback = function(v) 
+        _G.GodPrimeBABFT.MobileFly = v 
+        isCheatActive = v
+        if ActiveWidget then ActiveWidget.Visible = v end
+    end
 })
 MoveTab:CreateSlider({
     Name = "🚀 Serbest Uçuş Hızı",
@@ -502,9 +530,6 @@ MoveTab:CreateSlider({
     Callback = function(v) _G.GodPrimeBABFT.JumpPower = v end
 })
 
--- TAB 3: TEKNE ARAÇLARI (BOAT TOOLS)
-local BoatTab = Window:CreateTab("⛵ Tekne Araçları", 4483362458)
-
 BoatTab:CreateSection("🛠️ Tekne Geliştirmeleri")
 BoatTab:CreateToggle({
     Name = "⛵ Tekne God Mode (Çarpışmasız & Güvenli)",
@@ -527,9 +552,6 @@ BoatTab:CreateButton({
         end)
     end
 })
-
--- TAB 4: IŞINLANMA (TELEPORTS)
-local TeleportTab = Window:CreateTab("🎯 Işınlanma", 4483362458)
 
 TeleportTab:CreateSection("📍 Harita Konumları")
 TeleportTab:CreateButton({
@@ -557,9 +579,6 @@ for i = 1, 10 do
     })
 end
 
--- TAB 5: GÖRSEL & ESP
-local VisualsTab = Window:CreateTab("👁️ Görsel & ESP", 4483362458)
-
 VisualsTab:CreateSection("💡 Çevre Işıklandırması")
 VisualsTab:CreateToggle({
     Name = "💡 Fullbright (Karanlığı Kaldır)",
@@ -583,9 +602,6 @@ VisualsTab:CreateToggle({
     CurrentValue = false,
     Callback = function(v) toggleBoatESP(v) end
 })
-
--- TAB 6: SİSTEM
-local SystemTab = Window:CreateTab("⚙️ Sistem", 4483362458)
 
 SystemTab:CreateSection("🛡️ Güvenlik Araçları")
 SystemTab:CreateToggle({
@@ -622,10 +638,105 @@ SystemTab:CreateButton({
     end
 })
 
--- Bildirim
+-- ==========================================
+-- CYBERPUNK WIDGET & KONTROL SİSTEMİ
+-- ==========================================
+if CoreGui:FindFirstChild("BabftMasterAI_Gui") then
+    CoreGui.BabftMasterAI_Gui:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BabftMasterAI_Gui"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+isCheatActive = false
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Parent = ScreenGui
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+ToggleBtn.Position = UDim2.new(0, 25, 0.5, -30)
+ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Text = "⚡"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 229, 255)
+ToggleBtn.TextSize = 22
+ToggleBtn.Draggable = true
+ToggleBtn.AutoButtonColor = false
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCorner.Parent = ToggleBtn
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Parent = ToggleBtn
+ToggleStroke.Color = Color3.fromRGB(0, 229, 255)
+ToggleStroke.Thickness = 2
+
+ActiveWidget = Instance.new("Frame")
+ActiveWidget.Name = "ActiveWidget"
+ActiveWidget.Parent = ScreenGui
+ActiveWidget.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
+ActiveWidget.Position = UDim2.new(0.5, -170, 0, 20)
+ActiveWidget.Size = UDim2.new(0, 340, 0, 50)
+ActiveWidget.Visible = false
+ActiveWidget.Draggable = true
+
+local ActiveWidgetCorner = Instance.new("UICorner")
+ActiveWidgetCorner.CornerRadius = UDim.new(0, 10)
+ActiveWidgetCorner.Parent = ActiveWidget
+
+local ActiveWidgetStroke = Instance.new("UIStroke")
+ActiveWidgetStroke.Parent = ActiveWidget
+ActiveWidgetStroke.Color = Color3.fromRGB(0, 255, 128)
+ActiveWidgetStroke.Thickness = 1.5
+
+local ActiveIndicatorText = Instance.new("TextLabel")
+ActiveIndicatorText.Parent = ActiveWidget
+ActiveIndicatorText.BackgroundTransparency = 1
+ActiveIndicatorText.Position = UDim2.new(0, 12, 0, 0)
+ActiveIndicatorText.Size = UDim2.new(1, -60, 1, 0)
+ActiveIndicatorText.Font = Enum.Font.GothamBold
+ActiveIndicatorText.Text = "Aktif: BABFT God Prime v6.0"
+ActiveIndicatorText.TextColor3 = Color3.fromRGB(0, 255, 128)
+ActiveIndicatorText.TextSize = 13
+ActiveIndicatorText.TextXAlignment = Enum.TextXAlignment.Left
+
+local ActiveCloseBtn = Instance.new("TextButton")
+ActiveCloseBtn.Name = "ActiveCloseBtn"
+ActiveCloseBtn.Parent = ActiveWidget
+ActiveCloseBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+ActiveCloseBtn.Position = UDim2.new(1, -42, 0.5, -16)
+ActiveCloseBtn.Size = UDim2.new(0, 32, 0, 32)
+ActiveCloseBtn.Font = Enum.Font.GothamBold
+ActiveCloseBtn.Text = "✕"
+ActiveCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ActiveCloseBtn.TextSize = 14
+
+local ActiveCloseCorner = Instance.new("UICorner")
+ActiveCloseCorner.CornerRadius = UDim.new(0, 6)
+ActiveCloseCorner.Parent = ActiveCloseBtn
+
+ActiveCloseBtn.MouseButton1Click:Connect(function()
+    isCheatActive = false
+    FullCleanup()
+    ActiveWidget.Visible = false
+    if Window then
+        Rayfield:Toggle()
+    end
+end)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    if Window then
+        Rayfield:Toggle()
+    end
+end)
+
+Rayfield:LoadConfiguration()
 Rayfield:Notify({
     Title = "BABFT God Prime Hub v6.0 Aktif!",
     Content = "📱 Mobil uyumlu joystick, süzülme oto-çiftliği ve özel ESP yüklendi.",
     Duration = 7, Image = 4483362458
 })
-
