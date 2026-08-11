@@ -1,6 +1,6 @@
 -- ============================================================
--- DELTA ULTIMATE V4 — QUANTUM SAFE & PERSISTENT EDITION
--- Roblox Studio / LocalScript
+-- DELTA ULTIMATE V4 — EXECUTOR & PERSISTENT EDITION
+-- Roblox Studio / LocalScript / Executor
 -- ============================================================
 
 local Players = game:GetService("Players")
@@ -17,7 +17,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 local CONFIG = {
     Name = "DeltaUltimateV4",
-    FileName = "DeltaUltimateV4_Scripts.json",
+    FileName = "DeltaUltimateV4_Executor_Scripts.json",
 
     Theme = Color3.fromRGB(85, 170, 255),
 
@@ -33,8 +33,8 @@ local CONFIG = {
     Notifications = true,
     ShowToggle = true,
 
-    WindowWidth = 620,
-    WindowHeight = 390,
+    WindowWidth = 640,
+    WindowHeight = 400,
 
     MaxScripts = 100,
 }
@@ -311,9 +311,9 @@ create("TextLabel", {
 
 local version = create("TextLabel", {
     Position = UDim2.new(0, 174, 0, 0),
-    Size = UDim2.new(0, 100, 1, 0),
+    Size = UDim2.new(0, 120, 1, 0),
     BackgroundTransparency = 1,
-    Text = "V4 • PRO",
+    Text = "V4 • EXECUTOR",
     TextColor3 = CONFIG.Theme,
     Font = Enum.Font.GothamBold,
     TextSize = 10,
@@ -499,7 +499,7 @@ local codeBox = create("TextBox", {
     Size = UDim2.new(1, -24, 0, 78),
     BackgroundColor3 = CONFIG.Input,
     BorderSizePixel = 0,
-    PlaceholderText = "Kodunu buraya ekle...",
+    PlaceholderText = "loadstring veya kodunu buraya ekle...",
     PlaceholderColor3 = CONFIG.SubText,
     Text = "",
     TextColor3 = CONFIG.Text,
@@ -526,12 +526,35 @@ local saveButton = create("TextButton", {
 corner(saveButton, 6)
 
 -- ============================================================
--- HISTORY & FAVORITES LOGIC
+-- SCRIPT EXECUTION & HISTORY LOGIC
 -- ============================================================
 
 local function addHistory(name)
     table.insert(State.History, 1, { Name = name, Time = os.date("%H:%M:%S") })
     while #State.History > 30 do table.remove(State.History) end
+end
+
+local function executeScript(scriptData)
+    addHistory(scriptData.Name)
+    
+    local success, err = pcall(function()
+        if typeof(loadstring) == "function" then
+            local func, loadErr = loadstring(scriptData.Code)
+            if func then
+                task.spawn(func)
+            else
+                error(loadErr)
+            end
+        else
+            error("loadstring desteklenmiyor!")
+        end
+    end)
+
+    if success then
+        notify("Başarılı", scriptData.Name .. " çalıştırıldı.", "success")
+    else
+        notify("Çalıştırma Hatası", tostring(err), "error")
+    end
 end
 
 local function isFavorite(name)
@@ -668,15 +691,15 @@ local function createScriptCard(scriptData, parent)
         Position = UDim2.new(0, 12, 0, 0),
         Size = UDim2.new(0, 35, 1, 0),
         BackgroundTransparency = 1,
-        Text = "▣",
+        Text = "▶",
         TextColor3 = CONFIG.Theme,
         Font = Enum.Font.GothamBold,
-        TextSize = 18,
+        TextSize = 16,
     }, card)
 
     create("TextLabel", {
         Position = UDim2.new(0, 48, 0, 7),
-        Size = UDim2.new(1, -190, 0, 20),
+        Size = UDim2.new(1, -225, 0, 20),
         BackgroundTransparency = 1,
         Text = scriptData.Name,
         TextColor3 = CONFIG.Text,
@@ -688,15 +711,31 @@ local function createScriptCard(scriptData, parent)
 
     create("TextLabel", {
         Position = UDim2.new(0, 48, 0, 28),
-        Size = UDim2.new(1, -190, 0, 18),
+        Size = UDim2.new(1, -225, 0, 18),
         BackgroundTransparency = 1,
-        Text = "Quantum Safe • Kalıcı Depolama",
+        Text = "Çalıştırılabilir Executor Scripti",
         TextColor3 = CONFIG.SubText,
         Font = Enum.Font.Gotham,
         TextSize = 8,
         TextXAlignment = Enum.TextXAlignment.Left,
     }, card)
 
+    -- Çalıştır Butonu
+    local execBtn = create("TextButton", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -114, 0.5, 0),
+        Size = UDim2.new(0, 32, 0, 32),
+        BackgroundColor3 = CONFIG.Theme,
+        BorderSizePixel = 0,
+        Text = "▶",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.GothamBold,
+        TextSize, = 12,
+        AutoButtonColor = false,
+    }, card)
+    corner(execBtn, 6)
+
+    -- Görüntüle Butonu
     local view = create("TextButton", {
         AnchorPoint = Vector2.new(1, 0.5),
         Position = UDim2.new(1, -78, 0.5, 0),
@@ -711,6 +750,7 @@ local function createScriptCard(scriptData, parent)
     }, card)
     corner(view, 6)
 
+    -- Favori Butonu
     local favorite = create("TextButton", {
         AnchorPoint = Vector2.new(1, 0.5),
         Position = UDim2.new(1, -42, 0.5, 0),
@@ -724,6 +764,10 @@ local function createScriptCard(scriptData, parent)
         AutoButtonColor = false,
     }, card)
     corner(favorite, 6)
+
+    execBtn.MouseButton1Click:Connect(function()
+        executeScript(scriptData)
+    end)
 
     view.MouseButton1Click:Connect(function()
         addHistory(scriptData.Name)
@@ -844,7 +888,7 @@ local function refreshHistory()
             Position = UDim2.new(0, 12, 0, 25),
             Size = UDim2.new(0.7, 0, 0, 17),
             BackgroundTransparency = 1,
-            Text = "Görüntülendi: " .. item.Time,
+            Text = "Çalıştırıldı/Görüntülendi: " .. item.Time,
             TextColor3 = CONFIG.SubText,
             Font = Enum.Font.Gotham,
             TextSize = 8,
@@ -1000,15 +1044,15 @@ create("TextLabel", {
     Size = UDim2.new(1, 0, 0, 150),
     BackgroundTransparency = 1,
     Text = [[
-QUANTUM SAFE & PERSISTENT EDITION
+EXECUTOR & PERSISTENT EDITION
 
-Modern Roblox Studio script kütüphanesi.
+Tam Donanımlı Roblox Script Yürütücüsü.
 
 Özellikler:
-• Otomatik JSON Kalıcılığı (Kayıtlar silinmez)
-• Güvenli Kod Görüntüleme ve Kopyalama
-• Gelişmiş Arama ve Favoriler
-• Mobil Uyumlu Arayüz
+• Tek Tıkla Script Çalıştırma (▶)
+• Otomatik JSON Disk Kalıcılığı
+• loadstring ve HttpGet Desteği
+• Arama, Favoriler ve Geçmiş Sistemi
 ]],
     TextColor3 = CONFIG.SubText,
     Font = Enum.Font.Gotham,
@@ -1019,30 +1063,35 @@ Modern Roblox Studio script kütüphanesi.
 }, aboutTab)
 
 -- ============================================================
--- DEFAULT SCRIPTS
+-- DEFAULT SCRIPTS & LOADSTRING EXAMPLES
 -- ============================================================
 
 State.Scripts = {
     {
-        Name = "Örnek LocalScript",
-        Code = [[print("Delta Ultimate V4 Pro çalışıyor.")]],
+        Name = "Örnek Test Scripti",
+        Code = [[print("Delta Ultimate V4 Executor aktif!")
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Delta V4",
+    Text = "Script başarıyla çalıştırıldı!",
+    Duration = 3
+})]],
         Created = os.time(),
     },
     {
-        Name = "Grow a Steal Template",
-        Code = [[-- Proje Script Taslağı
-print("Grow a Steal oyun sistemi aktif.")]],
+        Name = "Infinite Yield (Loadstring Örneği)",
+        Code = [[loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()]],
         Created = os.time(),
     },
     {
-        Name = "MM2 Helper Template",
-        Code = [[-- Murder Mystery 2 Yardımcı Şablonu
-print("MM2 Utility modülü hazır.")]],
+        Name = "Grow a Steal / MM2 Test Şablonu",
+        Code = [[print("Proje script şablonu çalıştırıldı.")
+-- Buraya loadstring veya kendi kodlarını ekleyebilirsin.
+]],
         Created = os.time(),
     }
 }
 
--- Diskten kayıtları yükle (eğer varsa)
+-- Diskten kayıtları yükle
 loadScriptsFromDisk()
 
 -- ============================================================
@@ -1092,4 +1141,1148 @@ closeButton.MouseButton1Click:Connect(closeWindow)
 selectTab("Kütüphane")
 refreshLibrary()
 
-notify("DELTA ULTIMATE V4", "Quantum Safe & Persistent Pro sürüm hazır.", "success")
+notify("DELTA ULTIMATE V4", "Executor sürümü başarıyla yüklendi.", "success")
+-- ============================================================
+-- DELTA ULTIMATE V4 — EXECUTOR & PERSISTENT EDITION
+-- Roblox Studio / LocalScript / Executor
+-- ============================================================
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- ============================================================
+-- CONFIG
+-- ============================================================
+
+local CONFIG = {
+    Name = "DeltaUltimateV4",
+    FileName = "DeltaUltimateV4_Executor_Scripts.json",
+
+    Theme = Color3.fromRGB(85, 170, 255),
+
+    Background = Color3.fromRGB(11, 12, 16),
+    Sidebar = Color3.fromRGB(18, 19, 25),
+    Card = Color3.fromRGB(23, 24, 31),
+    Input = Color3.fromRGB(27, 28, 36),
+
+    Text = Color3.fromRGB(245, 245, 250),
+    SubText = Color3.fromRGB(165, 167, 177),
+
+    Animation = true,
+    Notifications = true,
+    ShowToggle = true,
+
+    WindowWidth = 640,
+    WindowHeight = 400,
+
+    MaxScripts = 100,
+}
+
+-- ============================================================
+-- CLEAN OLD GUI
+-- ============================================================
+
+local old = playerGui:FindFirstChild(CONFIG.Name)
+if old then
+    old:Destroy()
+end
+
+-- ============================================================
+-- STATE
+-- ============================================================
+
+local State = {
+    Open = false,
+    CurrentTab = "Library",
+    Search = "",
+    Scripts = {},
+    Favorites = {},
+    History = {},
+    SelectedScript = nil,
+}
+
+-- ============================================================
+-- PERSISTENCE (SAVE / LOAD SYSTEM)
+-- ============================================================
+
+local function saveScriptsToDisk()
+    if typeof(writefile) == "function" then
+        pcall(function()
+            local data = {
+                Scripts = State.Scripts,
+                Favorites = State.Favorites
+            }
+            writefile(CONFIG.FileName, HttpService:JSONEncode(data))
+        end)
+    end
+end
+
+local function loadScriptsFromDisk()
+    if typeof(readfile) == "function" and typeof(isfile) == "function" then
+        pcall(function()
+            if isfile(CONFIG.FileName) then
+                local content = readfile(CONFIG.FileName)
+                local data = HttpService:JSONDecode(content)
+                if data then
+                    if data.Scripts then State.Scripts = data.Scripts end
+                    if data.Favorites then State.Favorites = data.Favorites end
+                end
+            end
+        end)
+    end
+end
+
+-- ============================================================
+-- UTILITY
+-- ============================================================
+
+local function create(className, properties, parent)
+    local object = Instance.new(className)
+    for property, value in pairs(properties or {}) do
+        object[property] = value
+    end
+    object.Parent = parent
+    return object
+end
+
+local function corner(object, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 8)
+    c.Parent = object
+    return c
+end
+
+local function stroke(object, color, thickness)
+    local s = Instance.new("UIStroke")
+    s.Color = color or Color3.fromRGB(45, 46, 55)
+    s.Thickness = thickness or 1
+    s.Transparency = 0
+    s.Parent = object
+    return s
+end
+
+local function tween(object, info, properties)
+    if not CONFIG.Animation then
+        for property, value in pairs(properties) do
+            object[property] = value
+        end
+        return
+    end
+    TweenService:Create(object, info, properties):Play()
+end
+
+-- ============================================================
+-- NOTIFICATION SYSTEM
+-- ============================================================
+
+local notificationHolder
+
+local function notify(titleText, messageText, kind)
+    if not CONFIG.Notifications then return end
+
+    local color = CONFIG.Theme
+    if kind == "error" then
+        color = Color3.fromRGB(255, 80, 80)
+    elseif kind == "success" then
+        color = Color3.fromRGB(70, 210, 140)
+    elseif kind == "warning" then
+        color = Color3.fromRGB(255, 190, 70)
+    end
+
+    local notification = create("Frame", {
+        Size = UDim2.new(0, 280, 0, 72),
+        BackgroundColor3 = CONFIG.Card,
+        BorderSizePixel = 0,
+    }, notificationHolder)
+
+    corner(notification, 9)
+    stroke(notification, color, 1.5)
+
+    local accent = create("Frame", {
+        Size = UDim2.new(0, 4, 1, 0),
+        BackgroundColor3 = color,
+        BorderSizePixel = 0,
+    }, notification)
+    corner(accent, 4)
+
+    create("TextLabel", {
+        Position = UDim2.new(0, 15, 0, 9),
+        Size = UDim2.new(1, -25, 0, 20),
+        BackgroundTransparency = 1,
+        Text = tostring(titleText),
+        TextColor3 = color,
+        Font = Enum.Font.GothamBold,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left,
+    }, notification)
+
+    create("TextLabel", {
+        Position = UDim2.new(0, 15, 0, 31),
+        Size = UDim2.new(1, -25, 0, 32),
+        BackgroundTransparency = 1,
+        Text = tostring(messageText),
+        TextColor3 = CONFIG.SubText,
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top,
+    }, notification)
+
+    notification.Position = UDim2.new(1, 20, 1, -85)
+    tween(notification, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+        Position = UDim2.new(1, -300, 1, -85)
+    })
+
+    task.delay(3, function()
+        if notification and notification.Parent then
+            tween(notification, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                Position = UDim2.new(1, 20, 1, -85)
+            })
+            task.delay(0.25, function()
+                if notification then notification:Destroy() end
+            end)
+        end
+    end)
+end
+
+-- ============================================================
+-- GUI ROOT & TOGGLE
+-- ============================================================
+
+local screenGui = create("ScreenGui", {
+    Name = CONFIG.Name,
+    ResetOnSpawn = false,
+    IgnoreGuiInset = true,
+    ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+}, playerGui)
+
+notificationHolder = create("Frame", {
+    AnchorPoint = Vector2.new(1, 1),
+    Position = UDim2.new(1, -15, 1, -15),
+    Size = UDim2.new(0, 300, 0, 300),
+    BackgroundTransparency = 1,
+}, screenGui)
+
+create("UIListLayout", {
+    FillDirection = Enum.FillDirection.Vertical,
+    HorizontalAlignment = Enum.HorizontalAlignment.Right,
+    VerticalAlignment = Enum.VerticalAlignment.Bottom,
+    Padding = UDim.new(0, 8),
+}, notificationHolder)
+
+local toggleButton = create("TextButton", {
+    Name = "Toggle",
+    Size = UDim2.new(0, 50, 0, 50),
+    Position = UDim2.new(0, 18, 0.5, -25),
+    BackgroundColor3 = CONFIG.Card,
+    BorderSizePixel = 0,
+    Text = "Δ",
+    TextColor3 = CONFIG.Theme,
+    Font = Enum.Font.GothamBlack,
+    TextSize = 22,
+    AutoButtonColor = false,
+    Active = true,
+}, screenGui)
+
+corner(toggleButton, 25)
+stroke(toggleButton, CONFIG.Theme, 2)
+
+-- ============================================================
+-- MAIN WINDOW & DRAG
+-- ============================================================
+
+local main = create("Frame", {
+    Name = "MainWindow",
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    Size = UDim2.new(0, CONFIG.WindowWidth, 0, CONFIG.WindowHeight),
+    BackgroundColor3 = CONFIG.Background,
+    BorderSizePixel = 0,
+    Visible = false,
+    Active = true,
+}, screenGui)
+
+corner(main, 12)
+stroke(main, Color3.fromRGB(45, 46, 55), 1)
+
+local dragging, dragStart, startPosition
+
+main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPosition = main.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(startPosition.X.Scale, startPosition.X.Offset + delta.X, startPosition.Y.Scale, startPosition.Y.Offset + delta.Y)
+    end
+end)
+
+-- ============================================================
+-- TOP BAR & SIDEBAR
+-- ============================================================
+
+local topBar = create("Frame", {
+    Size = UDim2.new(1, 0, 0, 48),
+    BackgroundTransparency = 1,
+}, main)
+
+create("TextLabel", {
+    Position = UDim2.new(0, 18, 0, 0),
+    Size = UDim2.new(0, 260, 1, 0),
+    BackgroundTransparency = 1,
+    Text = "DELTA ULTIMATE",
+    TextColor3 = CONFIG.Text,
+    Font = Enum.Font.GothamBlack,
+    TextSize = 15,
+    TextXAlignment = Enum.TextXAlignment.Left,
+}, topBar)
+
+local version = create("TextLabel", {
+    Position = UDim2.new(0, 174, 0, 0),
+    Size = UDim2.new(0, 120, 1, 0),
+    BackgroundTransparency = 1,
+    Text = "V4 • EXECUTOR",
+    TextColor3 = CONFIG.Theme,
+    Font = Enum.Font.GothamBold,
+    TextSize = 10,
+    TextXAlignment = Enum.TextXAlignment.Left,
+}, topBar)
+
+local closeButton = create("TextButton", {
+    AnchorPoint = Vector2.new(1, 0.5),
+    Position = UDim2.new(1, -12, 0.5, 0),
+    Size = UDim2.new(0, 32, 0, 32),
+    BackgroundColor3 = CONFIG.Card,
+    BorderSizePixel = 0,
+    Text = "×",
+    TextColor3 = CONFIG.SubText,
+    Font = Enum.Font.GothamBold,
+    TextSize = 20,
+    AutoButtonColor = false,
+}, topBar)
+
+corner(closeButton, 7)
+
+local sidebar = create("Frame", {
+    Position = UDim2.new(0, 0, 0, 48),
+    Size = UDim2.new(0, 145, 1, -48),
+    BackgroundColor3 = CONFIG.Sidebar,
+    BorderSizePixel = 0,
+}, main)
+
+create("UIPadding", {
+    PaddingTop = UDim.new(0, 12),
+    PaddingLeft = UDim.new(0, 10),
+    PaddingRight = UDim.new(0, 10),
+}, sidebar)
+
+create("UIListLayout", {
+    Padding = UDim.new(0, 7),
+    SortOrder = Enum.SortOrder.LayoutOrder,
+}, sidebar)
+
+local content = create("Frame", {
+    Position = UDim2.new(0, 145, 0, 48),
+    Size = UDim2.new(1, -145, 1, -48),
+    BackgroundTransparency = 1,
+}, main)
+
+-- ============================================================
+-- TABS SETUP
+-- ============================================================
+
+local tabs = {}
+local tabButtons = {}
+
+local function makeTab(name, icon)
+    local tab = create("ScrollingFrame", {
+        Name = name,
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ScrollBarThickness = 3,
+        ScrollBarImageColor3 = CONFIG.Theme,
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        CanvasSize = UDim2.new(),
+        Visible = false,
+    }, content)
+
+    create("UIPadding", {
+        PaddingTop = UDim.new(0, 12),
+        PaddingLeft = UDim.new(0, 14),
+        PaddingRight = UDim.new(0, 14),
+        PaddingBottom = UDim.new(0, 15),
+    }, tab)
+
+    create("UIListLayout", {
+        Padding = UDim.new(0, 9),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+    }, tab)
+
+    local button = create("TextButton", {
+        Size = UDim2.new(1, 0, 0, 38),
+        BackgroundColor3 = CONFIG.Card,
+        BorderSizePixel = 0,
+        Text = "   " .. icon .. "  " .. name,
+        TextColor3 = CONFIG.SubText,
+        Font = Enum.Font.GothamBold,
+        TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        AutoButtonColor = false,
+    }, sidebar)
+
+    corner(button, 7)
+
+    tabs[name] = tab
+    tabButtons[name] = button
+    return tab
+end
+
+local libraryTab = makeTab("Kütüphane", "▣")
+local favoritesTab = makeTab("Favoriler", "★")
+local historyTab = makeTab("Geçmiş", "◷")
+local settingsTab = makeTab("Ayarlar", "⚙")
+local aboutTab = makeTab("Hakkında", "i")
+
+local function selectTab(name)
+    State.CurrentTab = name
+    for tabName, tab in pairs(tabs) do
+        tab.Visible = (tabName == name)
+    end
+    for buttonName, button in pairs(tabButtons) do
+        if buttonName == name then
+            button.BackgroundColor3 = CONFIG.Theme
+            button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        else
+            button.BackgroundColor3 = CONFIG.Card
+            button.TextColor3 = CONFIG.SubText
+        end
+    end
+end
+
+for name, button in pairs(tabButtons) do
+    button.MouseButton1Click:Connect(function() selectTab(name) end)
+end
+
+-- ============================================================
+-- LIBRARY HEADER & ADD SCRIPT
+-- ============================================================
+
+local libraryHeader = create("Frame", {
+    Size = UDim2.new(1, 0, 0, 38),
+    BackgroundTransparency = 1,
+}, libraryTab)
+
+create("TextLabel", {
+    Size = UDim2.new(0.5, 0, 1, 0),
+    BackgroundTransparency = 1,
+    Text = "Script Kütüphanesi",
+    TextColor3 = CONFIG.Text,
+    Font = Enum.Font.GothamBold,
+    TextSize = 14,
+    TextXAlignment = Enum.TextXAlignment.Left,
+}, libraryHeader)
+
+local searchBox = create("TextBox", {
+    AnchorPoint = Vector2.new(1, 0.5),
+    Position = UDim2.new(1, 0, 0.5, 0),
+    Size = UDim2.new(0, 180, 0, 32),
+    BackgroundColor3 = CONFIG.Input,
+    BorderSizePixel = 0,
+    PlaceholderText = "Ara...",
+    PlaceholderColor3 = CONFIG.SubText,
+    Text = "",
+    TextColor3 = CONFIG.Text,
+    Font = Enum.Font.Gotham,
+    TextSize = 11,
+    ClearTextOnFocus = false,
+}, libraryHeader)
+corner(searchBox, 7)
+
+local addFrame = create("Frame", {
+    Size = UDim2.new(1, 0, 0, 185),
+    BackgroundColor3 = CONFIG.Card,
+    BorderSizePixel = 0,
+}, libraryTab)
+corner(addFrame, 9)
+stroke(addFrame, Color3.fromRGB(42, 43, 52), 1)
+
+local nameBox = create("TextBox", {
+    Position = UDim2.new(0, 12, 0, 12),
+    Size = UDim2.new(1, -24, 0, 32),
+    BackgroundColor3 = CONFIG.Input,
+    BorderSizePixel = 0,
+    PlaceholderText = "Script adı",
+    PlaceholderColor3 = CONFIG.SubText,
+    Text = "",
+    TextColor3 = CONFIG.Text,
+    Font = Enum.Font.Gotham,
+    TextSize = 11,
+    ClearTextOnFocus = false,
+}, addFrame)
+corner(nameBox, 6)
+
+local codeBox = create("TextBox", {
+    Position = UDim2.new(0, 12, 0, 52),
+    Size = UDim2.new(1, -24, 0, 78),
+    BackgroundColor3 = CONFIG.Input,
+    BorderSizePixel = 0,
+    PlaceholderText = "loadstring veya kodunu buraya ekle...",
+    PlaceholderColor3 = CONFIG.SubText,
+    Text = "",
+    TextColor3 = CONFIG.Text,
+    Font = Enum.Font.Code,
+    TextSize = 10,
+    MultiLine = true,
+    ClearTextOnFocus = false,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    TextYAlignment = Enum.TextYAlignment.Top,
+}, addFrame)
+corner(codeBox, 6)
+
+local saveButton = create("TextButton", {
+    Position = UDim2.new(0, 12, 0, 140),
+    Size = UDim2.new(1, -24, 0, 32),
+    BackgroundColor3 = CONFIG.Theme,
+    BorderSizePixel = 0,
+    Text = "＋  KÜTÜPHANEYE KAYDET",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    Font = Enum.Font.GothamBold,
+    TextSize = 11,
+    AutoButtonColor = false,
+}, addFrame)
+corner(saveButton, 6)
+
+-- ============================================================
+-- SCRIPT EXECUTION & HISTORY LOGIC
+-- ============================================================
+
+local function addHistory(name)
+    table.insert(State.History, 1, { Name = name, Time = os.date("%H:%M:%S") })
+    while #State.History > 30 do table.remove(State.History) end
+end
+
+local function executeScript(scriptData)
+    addHistory(scriptData.Name)
+    
+    local success, err = pcall(function()
+        if typeof(loadstring) == "function" then
+            local func, loadErr = loadstring(scriptData.Code)
+            if func then
+                task.spawn(func)
+            else
+                error(loadErr)
+            end
+        else
+            error("loadstring desteklenmiyor!")
+        end
+    end)
+
+    if success then
+        notify("Başarılı", scriptData.Name .. " çalıştırıldı.", "success")
+    else
+        notify("Çalıştırma Hatası", tostring(err), "error")
+    end
+end
+
+local function isFavorite(name)
+    return State.Favorites[name] == true
+end
+
+local function toggleFavorite(name)
+    State.Favorites[name] = not State.Favorites[name]
+    saveScriptsToDisk()
+    if State.Favorites[name] then
+        notify("Favori", name .. " favorilere eklendi.", "success")
+    else
+        notify("Favori", name .. " favorilerden çıkarıldı.", "warning")
+    end
+end
+
+-- ============================================================
+-- CODE VIEWER
+-- ============================================================
+
+local viewer
+
+local function closeViewer()
+    if viewer then viewer:Destroy() viewer = nil end
+end
+
+local function showCode(scriptData)
+    closeViewer()
+    viewer = create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.new(0, 560, 0, 340),
+        BackgroundColor3 = CONFIG.Background,
+        BorderSizePixel = 0,
+        ZIndex = 50,
+    }, screenGui)
+    corner(viewer, 10)
+    stroke(viewer, CONFIG.Theme, 1.5)
+
+    local header = create("Frame", { Size = UDim2.new(1, 0, 0, 44), BackgroundTransparency = 1, ZIndex = 51 }, viewer)
+    create("TextLabel", {
+        Position = UDim2.new(0, 14, 0, 0),
+        Size = UDim2.new(0.7, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Text = scriptData.Name,
+        TextColor3 = CONFIG.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 52,
+    }, header)
+
+    local close = create("TextButton", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -10, 0.5, 0),
+        Size = UDim2.new(0, 30, 0, 30),
+        BackgroundColor3 = CONFIG.Card,
+        BorderSizePixel = 0,
+        Text = "×",
+        TextColor3 = CONFIG.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        AutoButtonColor = false,
+        ZIndex = 52,
+    }, header)
+    corner(close, 6)
+    close.MouseButton1Click:Connect(closeViewer)
+
+    create("TextBox", {
+        Position = UDim2.new(0, 12, 0, 50),
+        Size = UDim2.new(1, -24, 1, -105),
+        BackgroundColor3 = CONFIG.Input,
+        BorderSizePixel = 0,
+        Text = scriptData.Code,
+        TextColor3 = CONFIG.Text,
+        Font = Enum.Font.Code,
+        TextSize = 10,
+        MultiLine = true,
+        ClearTextOnFocus = false,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top,
+        TextEditable = false,
+        ZIndex = 51,
+    }, viewer)
+    corner(viewer, 7)
+
+    local copy = create("TextButton", {
+        Position = UDim2.new(0, 12, 1, -46),
+        Size = UDim2.new(1, -24, 0, 34),
+        BackgroundColor3 = CONFIG.Theme,
+        BorderSizePixel = 0,
+        Text = "KODU KOPYALA",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.GothamBold,
+        TextSize = 11,
+        AutoButtonColor = false,
+        ZIndex = 51,
+    }, viewer)
+    corner(copy, 6)
+
+    copy.MouseButton1Click:Connect(function()
+        if typeof(setclipboard) == "function" then
+            pcall(function() setclipboard(scriptData.Code) end)
+            notify("Kopyalandı", "Kod panoya kopyalandı.", "success")
+        else
+            notify("Hata", "Panoya kopyalama desteklenmiyor.", "warning")
+        end
+    end)
+end
+
+-- ============================================================
+-- SCRIPT CARDS & REFRESH
+-- ============================================================
+
+local libraryCards = {}
+
+local function clearCards()
+    for _, card in ipairs(libraryCards) do
+        if card and card.Parent then card:Destroy() end
+    end
+    table.clear(libraryCards)
+end
+
+local function createScriptCard(scriptData, parent)
+    local card = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 58),
+        BackgroundColor3 = CONFIG.Card,
+        BorderSizePixel = 0,
+    }, parent)
+    corner(card, 8)
+    stroke(card, Color3.fromRGB(40, 41, 50), 1)
+
+    create("TextLabel", {
+        Position = UDim2.new(0, 12, 0, 0),
+        Size = UDim2.new(0, 35, 1, 0),
+        BackgroundTransparency = 1,
+        Text = "▶",
+        TextColor3 = CONFIG.Theme,
+        Font = Enum.Font.GothamBold,
+        TextSize = 16,
+    }, card)
+
+    create("TextLabel", {
+        Position = UDim2.new(0, 48, 0, 7),
+        Size = UDim2.new(1, -225, 0, 20),
+        BackgroundTransparency = 1,
+        Text = scriptData.Name,
+        TextColor3 = CONFIG.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+    }, card)
+
+    create("TextLabel", {
+        Position = UDim2.new(0, 48, 0, 28),
+        Size = UDim2.new(1, -225, 0, 18),
+        BackgroundTransparency = 1,
+        Text = "Çalıştırılabilir Executor Scripti",
+        TextColor3 = CONFIG.SubText,
+        Font = Enum.Font.Gotham,
+        TextSize = 8,
+        TextXAlignment = Enum.TextXAlignment.Left,
+    }, card)
+
+    -- Çalıştır Butonu
+    local execBtn = create("TextButton", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -114, 0.5, 0),
+        Size = UDim2.new(0, 32, 0, 32),
+        BackgroundColor3 = CONFIG.Theme,
+        BorderSizePixel = 0,
+        Text = "▶",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.GothamBold,
+        TextSize, = 12,
+        AutoButtonColor = false,
+    }, card)
+    corner(execBtn, 6)
+
+    -- Görüntüle Butonu
+    local view = create("TextButton", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -78, 0.5, 0),
+        Size = UDim2.new(0, 32, 0, 32),
+        BackgroundColor3 = CONFIG.Input,
+        BorderSizePixel = 0,
+        Text = "👁",
+        TextColor3 = CONFIG.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 13,
+        AutoButtonColor = false,
+    }, card)
+    corner(view, 6)
+
+    -- Favori Butonu
+    local favorite = create("TextButton", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -42, 0.5, 0),
+        Size = UDim2.new(0, 32, 0, 32),
+        BackgroundColor3 = CONFIG.Input,
+        BorderSizePixel = 0,
+        Text = isFavorite(scriptData.Name) and "★" or "☆",
+        TextColor3 = isFavorite(scriptData.Name) and CONFIG.Theme or CONFIG.SubText,
+        Font = Enum.Font.GothamBold,
+        TextSize = 16,
+        AutoButtonColor = false,
+    }, card)
+    corner(favorite, 6)
+
+    execBtn.MouseButton1Click:Connect(function()
+        executeScript(scriptData)
+    end)
+
+    view.MouseButton1Click:Connect(function()
+        addHistory(scriptData.Name)
+        showCode(scriptData)
+    end)
+
+    favorite.MouseButton1Click:Connect(function()
+        toggleFavorite(scriptData.Name)
+        favorite.Text = isFavorite(scriptData.Name) and "★" or "☆"
+        favorite.TextColor3 = isFavorite(scriptData.Name) and CONFIG.Theme or CONFIG.SubText
+    end)
+
+    return card
+end
+
+local function refreshLibrary()
+    clearCards()
+    local query = string.lower(State.Search)
+    for _, scriptData in ipairs(State.Scripts) do
+        local matches = query == "" or string.find(string.lower(scriptData.Name), query, 1, true) or string.find(string.lower(scriptData.Code), query, 1, true)
+        if matches then
+            local card = createScriptCard(scriptData, libraryTab)
+            table.insert(libraryCards, card)
+        end
+    end
+end
+
+saveButton.MouseButton1Click:Connect(function()
+    local name = string.gsub(nameBox.Text, "^%s*(.-)%s*$", "%1")
+    local code = codeBox.Text
+
+    if name == "" then notify("Eksik bilgi", "Script adı boş olamaz.", "error") return end
+    if code == "" then notify("Eksik bilgi", "Kod alanı boş bırakılamaz.", "error") return end
+    if #State.Scripts >= CONFIG.MaxScripts then notify("Limit", "Kütüphane dolu.", "error") return end
+
+    for _, existing in ipairs(State.Scripts) do
+        if string.lower(existing.Name) == string.lower(name) then
+            notify("Mevcut", "Bu isimde bir script zaten var.", "warning")
+            return
+        end
+    end
+
+    table.insert(State.Scripts, { Name = name, Code = code, Created = os.time() })
+    saveScriptsToDisk()
+
+    nameBox.Text = ""
+    codeBox.Text = ""
+    refreshLibrary()
+    notify("Kaydedildi", name .. " kütüphaneye eklendi.", "success")
+end)
+
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    State.Search = searchBox.Text
+    refreshLibrary()
+end)
+
+-- ============================================================
+-- FAVORITES & HISTORY TABS
+-- ============================================================
+
+create("TextLabel", {
+    Size = UDim2.new(1, 0, 0, 36),
+    BackgroundTransparency = 1,
+    Text = "Favori Scriptler",
+    TextColor3 = CONFIG.Text,
+    Font = Enum.Font.GothamBold,
+    TextSize = 14,
+    TextXAlignment = Enum.TextXAlignment.Left,
+}, favoritesTab)
+
+local function refreshFavorites()
+    for _, child in ipairs(favoritesTab:GetChildren()) do
+        if child:IsA("Frame") and child.Text ~= "Favori Scriptler" then
+            child:Destroy()
+        end
+    end
+    for _, scriptData in ipairs(State.Scripts) do
+        if isFavorite(scriptData.Name) then
+            createScriptCard(scriptData, favoritesTab)
+        end
+    end
+end
+
+create("TextLabel", {
+    Size = UDim2.new(1, 0, 0, 36),
+    BackgroundTransparency = 1,
+    Text = "Geçmiş",
+    TextColor3 = CONFIG.Text,
+    Font = Enum.Font.GothamBold,
+    TextSize = 14,
+    TextXAlignment = Enum.TextXAlignment.Left,
+}, historyTab)
+
+local function refreshHistory()
+    for _, child in ipairs(historyTab:GetChildren()) do
+        if child:IsA("Frame") then child:Destroy() end
+    end
+    for _, item in ipairs(State.History) do
+        local card = create("Frame", {
+            Size = UDim2.new(1, 0, 0, 48),
+            BackgroundColor3 = CONFIG.Card,
+            BorderSizePixel = 0,
+        }, historyTab)
+        corner(card, 7)
+
+        create("TextLabel", {
+            Position = UDim2.new(0, 12, 0, 5),
+            Size = UDim2.new(0.7, 0, 0, 20),
+            BackgroundTransparency = 1,
+            Text = item.Name,
+            TextColor3 = CONFIG.Text,
+            Font = Enum.Font.GothamBold,
+            TextSize = 10,
+            TextXAlignment = Enum.TextXAlignment.Left,
+        }, card)
+
+        create("TextLabel", {
+            Position = UDim2.new(0, 12, 0, 25),
+            Size = UDim2.new(0.7, 0, 0, 17),
+            BackgroundTransparency = 1,
+            Text = "Çalıştırıldı/Görüntülendi: " .. item.Time,
+            TextColor3 = CONFIG.SubText,
+            Font = Enum.Font.Gotham,
+            TextSize = 8,
+            TextXAlignment = Enum.TextXAlignment.Left,
+        }, card)
+    end
+end
+
+tabButtons["Favoriler"].MouseButton1Click:Connect(refreshFavorites)
+tabButtons["Geçmiş"].MouseButton1Click:Connect(refreshHistory)
+
+-- ============================================================
+-- SETTINGS & THEMES
+-- ============================================================
+
+create("TextLabel", {
+    Size = UDim2.new(1, 0, 0, 36),
+    BackgroundTransparency = 1,
+    Text = "Ayarlar",
+    TextColor3 = CONFIG.Text,
+    Font = Enum.Font.GothamBold,
+    TextSize = 14,
+    TextXAlignment = Enum.TextXAlignment.Left,
+}, settingsTab)
+
+local function settingButton(text, description, callback)
+    local frame = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 58),
+        BackgroundColor3 = CONFIG.Card,
+        BorderSizePixel = 0,
+    }, settingsTab)
+    corner(frame, 8)
+
+    create("TextLabel", {
+        Position = UDim2.new(0, 12, 0, 7),
+        Size = UDim2.new(0.65, 0, 0, 20),
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = CONFIG.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 10,
+        TextXAlignment = Enum.TextXAlignment.Left,
+    }, frame)
+
+    create("TextLabel", {
+        Position = UDim2.new(0, 12, 0, 28),
+        Size = UDim2.new(0.65, 0, 0, 20),
+        BackgroundTransparency = 1,
+        Text = description,
+        TextColor3 = CONFIG.SubText,
+        Font = Enum.Font.Gotham,
+        TextSize = 8,
+        TextXAlignment = Enum.TextXAlignment.Left,
+    }, frame)
+
+    local button = create("TextButton", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -12, 0.5, 0),
+        Size = UDim2.new(0, 80, 0, 30),
+        BackgroundColor3 = CONFIG.Theme,
+        BorderSizePixel = 0,
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.GothamBold,
+        TextSize = 9,
+        AutoButtonColor = false,
+    }, frame)
+    corner(button, 6)
+
+    button.MouseButton1Click:Connect(function() callback(button) end)
+    return button
+end
+
+local animBtn = settingButton("Animasyonlar", "Panel animasyonlarını aç/kapat.", function(b)
+    CONFIG.Animation = not CONFIG.Animation
+    b.Text = CONFIG.Animation and "AÇIK" or "KAPALI"
+end)
+animBtn.Text = "AÇIK"
+
+local notifBtn = settingButton("Bildirimler", "Bildirim sistemini aç/kapat.", function(b)
+    CONFIG.Notifications = not CONFIG.Notifications
+    b.Text = CONFIG.Notifications and "AÇIK" or "KAPALI"
+end)
+notifBtn.Text = "AÇIK"
+
+local toggleVisBtn = settingButton("Toggle Butonu", "Sol taraftaki Delta butonunu göster/gizle.", function(b)
+    CONFIG.ShowToggle = not CONFIG.ShowToggle
+    toggleButton.Visible = CONFIG.ShowToggle
+    b.Text = CONFIG.ShowToggle and "AÇIK" or "KAPALI"
+end)
+toggleVisBtn.Text = "AÇIK"
+
+create("TextLabel", {
+    Size = UDim2.new(1, 0, 0, 25),
+    BackgroundTransparency = 1,
+    Text = "Tema Rengi",
+    TextColor3 = CONFIG.Text,
+    Font = Enum.Font.GothamBold,
+    TextSize = 11,
+    TextXAlignment = Enum.TextXAlignment.Left,
+}, settingsTab)
+
+local themeFrame = create("Frame", { Size = UDim2.new(1, 0, 0, 42), BackgroundTransparency = 1 }, settingsTab)
+create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8) }, themeFrame)
+
+local themes = {
+    {"Mavi", Color3.fromRGB(85, 170, 255)},
+    {"Mor", Color3.fromRGB(170, 100, 255)},
+    {"Yeşil", Color3.fromRGB(70, 210, 140)},
+    {"Kırmızı", Color3.fromRGB(255, 80, 90)},
+    {"Turuncu", Color3.fromRGB(255, 165, 70)},
+}
+
+local function applyTheme(color)
+    CONFIG.Theme = color
+    toggleButton.TextColor3 = color
+    version.TextColor3 = color
+    saveButton.BackgroundColor3 = color
+end
+
+for _, theme in ipairs(themes) do
+    local btn = create("TextButton", {
+        Size = UDim2.new(0, 75, 0, 34),
+        BackgroundColor3 = theme[2],
+        BorderSizePixel = 0,
+        Text = theme[1],
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.GothamBold,
+        TextSize = 9,
+        AutoButtonColor = false,
+    }, themeFrame)
+    corner(btn, 7)
+    btn.MouseButton1Click:Connect(function()
+        applyTheme(theme[2])
+        notify("Tema", theme[1] .. " teması uygulandı.", "success")
+    end)
+end
+
+-- ============================================================
+-- ABOUT
+-- ============================================================
+
+create("TextLabel", {
+    Size = UDim2.new(1, 0, 0, 40),
+    BackgroundTransparency = 1,
+    Text = "DELTA ULTIMATE V4",
+    TextColor3 = CONFIG.Theme,
+    Font = Enum.Font.GothamBlack,
+    TextSize = 20,
+    TextXAlignment = Enum.TextXAlignment.Left,
+}, aboutTab)
+
+create("TextLabel", {
+    Size = UDim2.new(1, 0, 0, 150),
+    BackgroundTransparency = 1,
+    Text = [[
+EXECUTOR & PERSISTENT EDITION
+
+Tam Donanımlı Roblox Script Yürütücüsü.
+
+Özellikler:
+• Tek Tıkla Script Çalıştırma (▶)
+• Otomatik JSON Disk Kalıcılığı
+• loadstring ve HttpGet Desteği
+• Arama, Favoriler ve Geçmiş Sistemi
+]],
+    TextColor3 = CONFIG.SubText,
+    Font = Enum.Font.Gotham,
+    TextSize = 11,
+    TextWrapped = true,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    TextYAlignment = Enum.TextYAlignment.Top,
+}, aboutTab)
+
+-- ============================================================
+-- DEFAULT SCRIPTS & LOADSTRING EXAMPLES
+-- ============================================================
+
+State.Scripts = {
+    {
+        Name = "Örnek Test Scripti",
+        Code = [[print("Delta Ultimate V4 Executor aktif!")
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Delta V4",
+    Text = "Script başarıyla çalıştırıldı!",
+    Duration = 3
+})]],
+        Created = os.time(),
+    },
+    {
+        Name = "Infinite Yield (Loadstring Örneği)",
+        Code = [[loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()]],
+        Created = os.time(),
+    },
+    {
+        Name = "Grow a Steal / MM2 Test Şablonu",
+        Code = [[print("Proje script şablonu çalıştırıldı.")
+-- Buraya loadstring veya kendi kodlarını ekleyebilirsin.
+]],
+        Created = os.time(),
+    }
+}
+
+-- Diskten kayıtları yükle
+loadScriptsFromDisk()
+
+-- ============================================================
+-- WINDOW ANIMATION / TOGGLE
+-- ============================================================
+
+local function openWindow()
+    if State.Open then return end
+    State.Open = true
+    main.Visible = true
+    if CONFIG.Animation then
+        main.Size = UDim2.new(0, 20, 0, 20)
+        tween(main, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, CONFIG.WindowWidth, 0, CONFIG.WindowHeight)
+        })
+    else
+        main.Size = UDim2.new(0, CONFIG.WindowWidth, 0, CONFIG.WindowHeight)
+    end
+    toggleButton.Text = "×"
+end
+
+local function closeWindow()
+    if not State.Open then return end
+    State.Open = false
+    if CONFIG.Animation then
+        tween(main, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 20, 0, 20)
+        })
+        task.delay(0.23, function()
+            if not State.Open then main.Visible = false end
+        end)
+    else
+        main.Visible = false
+    end
+    toggleButton.Text = "Δ"
+end
+
+toggleButton.MouseButton1Click:Connect(function()
+    if State.Open then closeWindow() else openWindow() end
+end)
+closeButton.MouseButton1Click:Connect(closeWindow)
+
+-- ============================================================
+-- INITIALIZE
+-- ============================================================
+
+selectTab("Kütüphane")
+refreshLibrary()
+
+notify("DELTA ULTIMATE V4", "Executor sürümü başarıyla yüklendi.", "success")
